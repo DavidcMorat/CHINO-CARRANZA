@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Wrench } from 'lucide-react';
-import generatedLogo from '../assets/images/taller_logo_icon_1785891982390.jpg';
+import logoImg from '../assets/images/Icon_taller.png';
 
 interface LogoHeaderProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -9,7 +9,6 @@ interface LogoHeaderProps {
 
 export const LogoHeader: React.FC<LogoHeaderProps> = ({ size = 'md', showText = true }) => {
   const [imgError, setImgError] = useState(false);
-  const [useGeneratedFallback, setUseGeneratedFallback] = useState(false);
 
   // Logo sizes requested: "hacer el logo un poco más grande (el png)"
   const dimensions = {
@@ -19,16 +18,6 @@ export const LogoHeader: React.FC<LogoHeaderProps> = ({ size = 'md', showText = 
     xl: { img: 'w-44 h-44', text: 'text-2xl', title: 'text-lg' }
   }[size];
 
-  const handlePrimaryError = () => {
-    if (!useGeneratedFallback) {
-      setUseGeneratedFallback(true);
-    } else {
-      setImgError(true);
-    }
-  };
-
-  const imgSrc = useGeneratedFallback ? generatedLogo : 'Icon_taller.png';
-
   return (
     <div className="flex flex-col items-center justify-center gap-2 select-none">
       <div className="relative group">
@@ -36,9 +25,9 @@ export const LogoHeader: React.FC<LogoHeaderProps> = ({ size = 'md', showText = 
         
         {!imgError ? (
           <img
-            src={imgSrc}
+            src={logoImg}
             alt="EL CHINO CARRANZA"
-            onError={handlePrimaryError}
+            onError={() => setImgError(true)}
             referrerPolicy="no-referrer"
             className={`${dimensions.img} object-contain relative transition-transform duration-300 transform group-hover:scale-105 filter drop-shadow-[0_0_15px_rgba(230,57,70,0.5)]`}
           />
