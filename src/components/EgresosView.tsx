@@ -23,6 +23,7 @@ export const EgresosView: React.FC<EgresosViewProps> = ({
   onToast
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [descripcion, setDescripcion] = useState('');
   const [monto, setMonto] = useState('');
   const [metodoPago, setMetodoPago] = useState<'efectivo' | 'yape' | 'otro'>('efectivo');
@@ -60,14 +61,13 @@ export const EgresosView: React.FC<EgresosViewProps> = ({
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('¿Eliminar este registro de egreso?')) {
-      const updated = data.egresos.filter((e) => e.id !== id);
-      onSaveData({
-        ...data,
-        egresos: updated
-      });
-      onToast('Egreso eliminado');
-    }
+    const updated = data.egresos.filter((e) => e.id !== id);
+    onSaveData({
+      ...data,
+      egresos: updated
+    });
+    onToast('Egreso eliminado');
+    setConfirmDeleteId(null);
   };
 
   const totalEgresos = data.egresos.reduce((acc, e) => acc + (Number(e.monto) || 0), 0);
@@ -138,13 +138,30 @@ export const EgresosView: React.FC<EgresosViewProps> = ({
                     </td>
                     <td className="px-4 py-3 text-neutral-400">{e.fecha || '-'}</td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleDelete(e.id)}
-                        className="p-1.5 rounded-lg bg-neutral-800 hover:bg-red-950 text-neutral-400 hover:text-red-400 transition-colors"
-                        title="Eliminar egreso"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {confirmDeleteId === e.id ? (
+                        <div className="flex items-center justify-end gap-1 animate-in fade-in duration-200">
+                          <button
+                            onClick={() => handleDelete(e.id)}
+                            className="px-2 py-1 bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold rounded-lg"
+                          >
+                            Sí
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="px-2 py-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-[10px] font-bold rounded-lg"
+                          >
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteId(e.id)}
+                          className="p-1.5 rounded-lg bg-neutral-800 hover:bg-red-950 text-neutral-400 hover:text-red-400 transition-colors"
+                          title="Eliminar egreso"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))

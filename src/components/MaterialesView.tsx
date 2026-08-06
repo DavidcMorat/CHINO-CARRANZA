@@ -25,6 +25,7 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const [nombre, setNombre] = useState('');
   const [stock, setStock] = useState('');
@@ -77,14 +78,13 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('¿Deseas eliminar este material del inventario?')) {
-      const updated = data.materiales.filter((x) => x.id !== id);
-      onSaveData({
-        ...data,
-        materiales: updated
-      });
-      onToast('Material eliminado');
-    }
+    const updated = data.materiales.filter((x) => x.id !== id);
+    onSaveData({
+      ...data,
+      materiales: updated
+    });
+    onToast('Material eliminado');
+    setConfirmDeleteId(null);
   };
 
   const handleAdjustStock = (id: string, delta: number) => {
@@ -113,10 +113,10 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
             <Package className="w-7 h-7 text-emerald-400" />
-            <span>Inventario de Materiales</span>
+            <span>Registro de Materiales e Insumos</span>
           </h1>
           <p className="text-xs text-neutral-400 mt-1">
-            Control de repuestos, lubricantes y materiales con valorización total: {' '}
+            Materiales y repuestos disponibles para usar en la sección de <strong className="text-neutral-200">Trabajos</strong>. Valor total en stock: {' '}
             <span className="text-emerald-400 font-bold">{formatCurrency(totalInventoryValue)}</span>
           </p>
         </div>
@@ -201,13 +201,30 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
-                          <button
-                            onClick={() => handleDelete(m.id)}
-                            className="p-1.5 rounded-lg bg-neutral-800 hover:bg-red-950 text-neutral-400 hover:text-red-400 transition-colors"
-                            title="Eliminar material"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {confirmDeleteId === m.id ? (
+                            <div className="flex items-center gap-1 animate-in fade-in duration-200">
+                              <button
+                                onClick={() => handleDelete(m.id)}
+                                className="px-2 py-1 bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold rounded-lg"
+                              >
+                                Sí
+                              </button>
+                              <button
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="px-2 py-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-[10px] font-bold rounded-lg"
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDeleteId(m.id)}
+                              className="p-1.5 rounded-lg bg-neutral-800 hover:bg-red-950 text-neutral-400 hover:text-red-400 transition-colors"
+                              title="Eliminar material"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

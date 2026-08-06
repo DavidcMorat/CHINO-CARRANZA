@@ -35,6 +35,15 @@ export default function App() {
 
   const [currentSection, setCurrentSection] = useState<SectionType>('dashboard');
   const [isSynced, setIsSynced] = useState<boolean>(true);
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('chino_theme') as 'dark' | 'light') || 'dark';
+  });
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    localStorage.setItem('chino_theme', nextTheme);
+  };
 
   // App Central State
   const [appData, setAppData] = useState<AppData>({
@@ -90,23 +99,42 @@ export default function App() {
     return () => unsubscribeAuth();
   }, []);
 
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const isPendingWriteRef = React.useRef<boolean>(false);
+
   // Realtime Firestore Sync Listener
   useEffect(() => {
     if (!currentUser) return;
     const unsubSnapshot = subscribeUserData(currentUser, (newData) => {
-      setAppData(newData);
-      setIsSynced(true);
+      // Only update local state if we aren't currently debouncing a save, 
+      // otherwise it might overwrite un-saved local changes with older DB state
+      if (!isPendingWriteRef.current) {
+        setAppData(newData);
+        setIsSynced(true);
+      }
     });
 
     return () => unsubSnapshot();
   }, [currentUser]);
 
-  // Handler to update data both locally and in Firestore
-  const handleSaveData = async (newData: AppData) => {
+  // Handler to update data both locally and in Firestore (debounced to save writes)
+  const handleSaveData = (newData: AppData) => {
     setAppData(newData);
+    setIsSynced(false); // Indicates saving is pending
+    isPendingWriteRef.current = true;
+
     if (currentUser) {
-      const ok = await saveUserData(currentUser, newData);
-      setIsSynced(ok);
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      
+      // Debounce writes by 1500ms to reduce database usage and costs
+      saveTimeoutRef.current = setTimeout(async () => {
+        const ok = await saveUserData(currentUser, newData);
+        setIsSynced(ok);
+        isPendingWriteRef.current = false;
+        saveTimeoutRef.current = null;
+      }, 1500);
     }
   };
 
@@ -149,7 +177,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex font-sans antialiased selection:bg-red-600 selection:text-white">
+    <div className={`min-h-screen bg-neutral-950 text-neutral-100 flex font-sans antialiased selection:bg-red-600 selection:text-white ${theme === 'light' ? 'light-theme' : ''}`}>
       {/* Toast Notifications */}
       <div className="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full">
         {toasts.map((t) => (
@@ -181,6 +209,8 @@ export default function App() {
         pendingJobsCount={pendingJobsCount}
         isSynced={isSynced}
         onLogout={handleLogout}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Main Content View Container */}

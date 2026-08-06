@@ -1,6 +1,14 @@
+export interface MaterialUsadoItem {
+  materialId: string;
+  nombre: string;
+  cantidad: number;
+  precioUnitario: number;
+}
+
 export interface Trabajo {
   id: string;
-  clienteId: string;
+  clienteId?: string;
+  clienteNombre?: string; // Para clientes no registrados en el sistema
   vehiculo: string;
   descripcion: string;
   fecha: string; // YYYY-MM-DD
@@ -8,6 +16,7 @@ export interface Trabajo {
   costo: number;
   trabajadorId: string;
   materialesUsados?: string;
+  materialesDetalle?: MaterialUsadoItem[];
 }
 
 export interface Trabajador {
@@ -15,7 +24,9 @@ export interface Trabajador {
   nombre: string;
   telefono: string;
   sueldo: number;
-  fechaPago: string; // e.g. "25"
+  frecuenciaPago?: 'quincenal' | 'mensual' | 'personalizado';
+  diasPagoPersonalizado?: number; // días para frecuencia personalizada
+  fechaPago: string; // p. ej. "15 y 30", "Día 25", "Cada 10 días"
 }
 
 export interface Material {
@@ -39,6 +50,8 @@ export interface Presupuesto {
   monto: number;
   fechaLimite: string; // YYYY-MM-DD
   estado: 'pendiente' | 'completado';
+  categoria?: string;
+  simular?: boolean;
 }
 
 export interface Egreso {
@@ -54,6 +67,8 @@ export interface Asistencia {
   trabajadorId: string;
   fecha: string; // YYYY-MM-DD
   presente: boolean;
+  descripcionFalta?: string;
+  montoDescuento?: number;
 }
 
 export interface Anticipo {

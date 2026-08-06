@@ -13,7 +13,9 @@ import {
   LogOut,
   RefreshCw,
   CheckCircle2,
-  WifiOff
+  WifiOff,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { LogoHeader } from './LogoHeader';
 
@@ -35,6 +37,8 @@ interface SidebarProps {
   pendingJobsCount: number;
   isSynced: boolean;
   onLogout: () => void;
+  theme: 'dark' | 'light';
+  onToggleTheme: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -42,7 +46,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectSection,
   pendingJobsCount,
   isSynced,
-  onLogout
+  onLogout,
+  theme,
+  onToggleTheme
 }) => {
   const navItems: { id: SectionType; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -67,8 +73,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 bg-neutral-900 border-r border-neutral-800 h-screen sticky top-0 shrink-0 z-30">
         {/* Sidebar Logo Header - Enlarged PNG */}
-        <div className="p-5 border-b border-neutral-800/80 bg-neutral-950/40">
-          <LogoHeader size="md" showText={true} />
+        <div className="p-4 border-b border-neutral-800/80 bg-neutral-950/40 flex justify-center">
+          <LogoHeader size="md" />
         </div>
 
         {/* Navigation Items */}
@@ -105,7 +111,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </nav>
 
-        {/* Sync & Logout Footer */}
+        {/* Sync, Theme & Logout Footer */}
         <div className="p-4 border-t border-neutral-800/80 bg-neutral-950/40 flex flex-col gap-3">
           <div className="flex items-center justify-between text-xs px-2 text-neutral-400">
             <div className="flex items-center gap-2">
@@ -122,6 +128,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <WifiOff className="w-3.5 h-3.5 text-amber-400" />
             )}
           </div>
+
+          {/* Theme Toggle Button */}
+          <button
+            onClick={onToggleTheme}
+            className="w-full py-2 px-3 rounded-xl border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 text-xs font-semibold flex items-center justify-between transition-all"
+          >
+            <div className="flex items-center gap-2">
+              {theme === 'dark' ? (
+                <Moon className="w-4 h-4 text-indigo-400" />
+              ) : (
+                <Sun className="w-4 h-4 text-amber-500" />
+              )}
+              <span>{theme === 'dark' ? 'Modo Oscuro' : 'Modo Claro'}</span>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-400 font-bold uppercase">
+              {theme === 'dark' ? 'Oscuro' : 'Claro'}
+            </span>
+          </button>
 
           <button
             onClick={onLogout}
@@ -143,13 +167,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={onLogout}
-          className="p-2 rounded-lg text-neutral-400 hover:text-red-400 hover:bg-neutral-800"
-          title="Cerrar Sesión"
-        >
-          <LogOut className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={onToggleTheme}
+            className="p-2 rounded-lg text-neutral-300 hover:bg-neutral-800"
+            title={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-4.5 h-4.5 text-amber-400" />
+            ) : (
+              <Moon className="w-4.5 h-4.5 text-indigo-400" />
+            )}
+          </button>
+
+          <button
+            onClick={onLogout}
+            className="p-2 rounded-lg text-neutral-400 hover:text-red-400 hover:bg-neutral-800"
+            title="Cerrar Sesión"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Mobile Horizontal Bottom Scroll Navigation */}

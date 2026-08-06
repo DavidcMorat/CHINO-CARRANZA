@@ -31,6 +31,8 @@ export const TrabajadoresView: React.FC<TrabajadoresViewProps> = ({
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
   const [sueldo, setSueldo] = useState('');
+  const [frecuenciaPago, setFrecuenciaPago] = useState<'quincenal' | 'mensual' | 'personalizado'>('mensual');
+  const [diasPagoPersonalizado, setDiasPagoPersonalizado] = useState('7');
   const [fechaPago, setFechaPago] = useState('25');
 
   // Advance Form Modal
@@ -39,6 +41,8 @@ export const TrabajadoresView: React.FC<TrabajadoresViewProps> = ({
   const [advanceMonto, setAdvanceMonto] = useState('');
   const [advanceDesc, setAdvanceDesc] = useState('');
   const [advanceFecha, setAdvanceFecha] = useState(getTodayStr());
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const getAnticiposTrabajador = (tid: string) => {
     return data.anticipos
@@ -51,6 +55,8 @@ export const TrabajadoresView: React.FC<TrabajadoresViewProps> = ({
     setNombre('');
     setTelefono('');
     setSueldo('');
+    setFrecuenciaPago('mensual');
+    setDiasPagoPersonalizado('7');
     setFechaPago('25');
     setIsWorkerModalOpen(true);
   };
@@ -60,6 +66,8 @@ export const TrabajadoresView: React.FC<TrabajadoresViewProps> = ({
     setNombre(w.nombre);
     setTelefono(w.telefono || '');
     setSueldo(w.sueldo ? String(w.sueldo) : '');
+    setFrecuenciaPago(w.frecuenciaPago || 'mensual');
+    setDiasPagoPersonalizado(w.diasPagoPersonalizado ? String(w.diasPagoPersonalizado) : '7');
     setFechaPago(w.fechaPago || '25');
     setIsWorkerModalOpen(true);
   };
@@ -75,6 +83,8 @@ export const TrabajadoresView: React.FC<TrabajadoresViewProps> = ({
       nombre: nombre.trim(),
       telefono: telefono.trim(),
       sueldo: parseFloat(sueldo) || 0,
+      frecuenciaPago,
+      diasPagoPersonalizado: frecuenciaPago === 'personalizado' ? (parseInt(diasPagoPersonalizado, 10) || 7) : undefined,
       fechaPago: fechaPago.trim() || '25'
     };
 
@@ -96,20 +106,19 @@ export const TrabajadoresView: React.FC<TrabajadoresViewProps> = ({
   };
 
   const handleDeleteWorker = (id: string) => {
-    if (confirm('¿Eliminar este trabajador? Se desvincularán sus asistencias y anticipos.')) {
-      const updatedTrabajadores = data.trabajadores.filter((x) => x.id !== id);
-      const updatedAnticipos = data.anticipos.filter((x) => x.trabajadorId !== id);
-      const updatedAsistencias = data.asistencias.filter((x) => x.trabajadorId !== id);
+    const updatedTrabajadores = data.trabajadores.filter((x) => x.id !== id);
+    const updatedAnticipos = data.anticipos.filter((x) => x.trabajadorId !== id);
+    const updatedAsistencias = data.asistencias.filter((x) => x.trabajadorId !== id);
 
-      onSaveData({
-        ...data,
-        trabajadores: updatedTrabajadores,
-        anticipos: updatedAnticipos,
-        asistencias: updatedAsistencias
-      });
+    onSaveData({
+      ...data,
+      trabajadores: updatedTrabajadores,
+      anticipos: updatedAnticipos,
+      asistencias: updatedAsistencias
+    });
 
-      onToast('Trabajador eliminado');
-    }
+    onToast('Trabajador eliminado');
+    setConfirmDeleteId(null);
   };
 
   // Cash Advance Modal
@@ -198,10 +207,17 @@ export const TrabajadoresView: React.FC<TrabajadoresViewProps> = ({
                       <td className="px-4 py-3 font-semibold text-white">{w.nombre}</td>
                       <td className="px-4 py-3 text-neutral-400">{w.telefono || '-'}</td>
                       <td className="px-4 py-3 font-medium text-white">
-                        {formatCurrency(Number(w.sueldo) || 0)}
+                        <div>
+                          <span>{formatCurrency(Number(w.sueldo) || 0)}</span>
+                          <span className="block text-[10px] text-purple-400 capitalize font-semibold">
+                            {w.frecuenciaPago === 'personalizado'
+                              ? `Cada ${w.diasPagoPersonalizado || 7} días`
+                              : w.frecuenciaPago || 'Mensual'}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-neutral-400">
-                        {w.fechaPago ? `Día ${w.fechaPago}` : 'No definida'}
+                        {w.fechaPago ? w.fechaPago : 'Sin fecha'}
                       </td>
                       <td className="px-4 py-3 font-semibold text-amber-400">
                         {formatCurrency(totalAnticipos)}
@@ -223,13 +239,30 @@ export const TrabajadoresView: React.FC<TrabajadoresViewProps> = ({
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
-                          <button
-                            onClick={() => handleDeleteWorker(w.id)}
-                            className="p-1.5 rounded-lg bg-neutral-800 hover:bg-red-950 text-neutral-400 hover:text-red-400 transition-colors"
-                            title="Eliminar trabajador"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {confirmDeleteId === w.id ? (
+                            <div className="flex items-center gap-1 animate-in fade-in duration-200">
+                              <button
+                                onClick={() => handleDeleteWorker(w.id)}
+                                className="px-2 py-1 bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold rounded-lg"
+                              >
+                                Sí
+                              </button>
+                              <button
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="px-2 py-1 bg-neutral-800 hover:bg-neutral-750 text-neutral-300 text-[10px] font-bold rounded-lg"
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDeleteId(w.id)}
+                              className="p-1.5 rounded-lg bg-neutral-800 hover:bg-red-950 text-neutral-400 hover:text-red-400 transition-colors"
+                              title="Eliminar trabajador"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -286,7 +319,7 @@ export const TrabajadoresView: React.FC<TrabajadoresViewProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold uppercase text-neutral-400 mb-1.5 flex items-center gap-1.5">
                     <DollarSign className="w-3.5 h-3.5 text-purple-400" />
@@ -305,18 +338,49 @@ export const TrabajadoresView: React.FC<TrabajadoresViewProps> = ({
                 <div>
                   <label className="block text-xs font-semibold uppercase text-neutral-400 mb-1.5 flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Día de Pago (1-31)</span>
+                    <span>Frecuencia de Pago</span>
                   </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={fechaPago}
-                    onChange={(e) => setFechaPago(e.target.value)}
-                    placeholder="25"
+                  <select
+                    value={frecuenciaPago}
+                    onChange={(e) => setFrecuenciaPago(e.target.value as any)}
                     className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs focus:outline-none focus:border-purple-500"
-                  />
+                  >
+                    <option value="quincenal">Quincenal (Cada 15 días)</option>
+                    <option value="mensual">Mensual (Cada 30 días)</option>
+                    <option value="personalizado">Personalizado (Establecer Días)</option>
+                  </select>
                 </div>
+
+                {frecuenciaPago === 'personalizado' ? (
+                  <div>
+                    <label className="block text-xs font-semibold uppercase text-neutral-400 mb-1.5">
+                      Frecuencia de Pago (Cada cuántos días)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={diasPagoPersonalizado}
+                      onChange={(e) => setDiasPagoPersonalizado(e.target.value)}
+                      placeholder="Ej. 7, 10, 20"
+                      className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-semibold uppercase text-neutral-400 mb-1.5 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Día / Detalle de Pago (1-31)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={fechaPago}
+                      onChange={(e) => setFechaPago(e.target.value)}
+                      placeholder="Ej. 25 o 15 y 30"
+                      className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 

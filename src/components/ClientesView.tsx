@@ -28,6 +28,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Cliente | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
@@ -84,14 +85,13 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('¿Estás seguro de que deseas eliminar este cliente?')) {
-      const updated = data.clientes.filter((x) => x.id !== id);
-      onSaveData({
-        ...data,
-        clientes: updated
-      });
-      onToast('Cliente eliminado');
-    }
+    const updated = data.clientes.filter((x) => x.id !== id);
+    onSaveData({
+      ...data,
+      clientes: updated
+    });
+    onToast('Cliente eliminado');
+    setConfirmDeleteId(null);
   };
 
   return (
@@ -163,13 +163,30 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          onClick={() => handleDelete(c.id)}
-                          className="p-1.5 rounded-lg bg-neutral-800 hover:bg-red-950 text-neutral-400 hover:text-red-400 transition-colors"
-                          title="Eliminar cliente"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {confirmDeleteId === c.id ? (
+                          <div className="flex items-center gap-1 animate-in fade-in duration-200">
+                            <button
+                              onClick={() => handleDelete(c.id)}
+                              className="px-2 py-1 bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold rounded-lg"
+                            >
+                              Sí
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="px-2 py-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-[10px] font-bold rounded-lg"
+                            >
+                              No
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteId(c.id)}
+                            className="p-1.5 rounded-lg bg-neutral-800 hover:bg-red-950 text-neutral-400 hover:text-red-400 transition-colors"
+                            title="Eliminar cliente"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

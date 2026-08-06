@@ -45,17 +45,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
   return (
     <div className="fixed inset-0 bg-neutral-950 flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-md bg-neutral-900/90 backdrop-blur-md border border-neutral-800 rounded-2xl p-8 shadow-2xl shadow-red-950/20">
+      <div className="w-full max-w-md bg-neutral-900/90 backdrop-blur-md border border-neutral-800 rounded-2xl p-6 sm:p-7 shadow-2xl shadow-red-950/20 flex flex-col items-center">
         
-        {/* Prominent enlarged logo PNG header */}
-        <div className="mb-8">
-          <LogoHeader size="xl" showText={true} />
-          <p className="text-center text-xs text-neutral-400 mt-2 font-medium">
+        {/* Prominent enlarged logo PNG header positioned lower down */}
+        <div className="w-full flex flex-col items-center pt-2 mb-3">
+          <LogoHeader size="xl" />
+          <p className="text-center text-xs text-neutral-400 font-semibold tracking-wide uppercase mt-1">
             Sistema de Administración de Taller
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="w-full space-y-4">
           <div>
             <label className="block text-xs font-semibold uppercase text-neutral-400 tracking-wider mb-2">
               Correo Electrónico
