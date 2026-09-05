@@ -21,6 +21,7 @@ import { EgresosView } from './components/EgresosView';
 import { AsistenciaView } from './components/AsistenciaView';
 import { CalendarioView } from './components/CalendarioView';
 import { ExportarView } from './components/ExportarView';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface ToastItem {
@@ -170,14 +171,18 @@ export default function App() {
 
   if (!currentUser) {
     return (
-      <LoginScreen
-        onLoginSuccess={() => showToast('Bienvenido a EL CHINO CARRANZA')}
-      />
+      <>
+        <OfflineIndicator />
+        <LoginScreen
+          onLoginSuccess={() => showToast('Bienvenido a EL CHINO CARRANZA')}
+        />
+      </>
     );
   }
 
   return (
     <div className={`min-h-screen bg-neutral-950 text-neutral-100 flex font-sans antialiased selection:bg-red-600 selection:text-white ${theme === 'light' ? 'light-theme' : ''}`}>
+      <OfflineIndicator />
       {/* Toast Notifications */}
       <div className="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full">
         {toasts.map((t) => (

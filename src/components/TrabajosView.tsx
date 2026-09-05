@@ -737,7 +737,7 @@ export const TrabajosView: React.FC<TrabajosViewProps> = ({
                       )}
                       {data.materiales.map((m) => (
                         <option key={m.id} value={m.id}>
-                          {m.nombre} (Stock: {m.stock} ud. - {formatCurrency(m.precio)})
+                          {m.nombre} (Stock: {m.stock} ud.)
                         </option>
                       ))}
                     </select>
@@ -781,9 +781,7 @@ export const TrabajosView: React.FC<TrabajosViewProps> = ({
                     <thead className="bg-neutral-950 text-neutral-400 font-semibold uppercase text-[10px]">
                       <tr>
                         <th className="px-3 py-2.5">Material</th>
-                        <th className="px-3 py-2.5">Cantidad</th>
-                        <th className="px-3 py-2.5">Precio Unit.</th>
-                        <th className="px-3 py-2.5">Subtotal</th>
+                        <th className="px-3 py-2.5">Cantidad Usada</th>
                         <th className="px-3 py-2.5 text-right">Acción</th>
                       </tr>
                     </thead>
@@ -791,23 +789,16 @@ export const TrabajosView: React.FC<TrabajosViewProps> = ({
                       {(!selectedJobForMaterials.materialesDetalle ||
                         selectedJobForMaterials.materialesDetalle.length === 0) ? (
                         <tr>
-                          <td colSpan={5} className="px-4 py-6 text-center text-neutral-500">
-                            Aún no se han agregado materiales a este trabajo.
+                          <td colSpan={3} className="px-4 py-6 text-center text-neutral-500">
+                            Aún no se han asignado materiales a este trabajo.
                           </td>
                         </tr>
                       ) : (
                         selectedJobForMaterials.materialesDetalle.map((item) => {
-                          const subtotal = item.cantidad * item.precioUnitario;
                           return (
                             <tr key={item.materialId} className="hover:bg-neutral-800/40">
                               <td className="px-3 py-2.5 font-semibold text-white">{item.nombre}</td>
                               <td className="px-3 py-2.5 font-bold text-emerald-400">{item.cantidad} ud.</td>
-                              <td className="px-3 py-2.5 text-neutral-400">
-                                {formatCurrency(item.precioUnitario)}
-                              </td>
-                              <td className="px-3 py-2.5 font-bold text-white">
-                                {formatCurrency(subtotal)}
-                              </td>
                               <td className="px-3 py-2.5 text-right">
                                 <button
                                   type="button"
@@ -830,14 +821,13 @@ export const TrabajosView: React.FC<TrabajosViewProps> = ({
 
             <div className="p-4 border-t border-neutral-800 flex items-center justify-between bg-neutral-900">
               <div className="text-xs text-neutral-400">
-                Total Materiales:{' '}
+                Total Ítems Asignados:{' '}
                 <strong className="text-emerald-400 font-bold">
-                  {formatCurrency(
-                    (selectedJobForMaterials.materialesDetalle || []).reduce(
-                      (sum, item) => sum + item.cantidad * item.precioUnitario,
-                      0
-                    )
-                  )}
+                  {(selectedJobForMaterials.materialesDetalle || []).reduce(
+                    (sum, item) => sum + item.cantidad,
+                    0
+                  )}{' '}
+                  ud.
                 </strong>
               </div>
               <button

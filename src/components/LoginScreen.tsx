@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 import { signInWithEmailAndPassword, auth } from '../lib/firebase';
 import { LogoHeader } from './LogoHeader';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface LoginScreenProps {
   onLoginSuccess: () => void;
@@ -109,7 +110,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </button>
         </form>
 
-        <div className="mt-8 pt-4 border-t border-neutral-800/80 text-center">
+        <div className="w-full mt-4">
+          <PWAInstallButton variant="sidebar" />
+        </div>
+
+        <div className="mt-6 pt-4 border-t border-neutral-800/80 text-center w-full">
           <p className="text-[11px] text-neutral-500">
             EL CHINO CARRANZA &copy; {new Date().getFullYear()} — Acceso seguro restringido
           </p>

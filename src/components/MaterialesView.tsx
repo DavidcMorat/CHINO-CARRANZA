@@ -5,12 +5,11 @@ import {
   Minus,
   Edit3,
   Trash2,
-  DollarSign,
   Layers,
   X
 } from 'lucide-react';
 import { AppData, Material } from '../types';
-import { formatCurrency, generateId } from '../lib/dateUtils';
+import { generateId } from '../lib/dateUtils';
 
 interface MaterialesViewProps {
   data: AppData;
@@ -29,13 +28,11 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
 
   const [nombre, setNombre] = useState('');
   const [stock, setStock] = useState('');
-  const [precio, setPrecio] = useState('');
 
   const handleOpenNew = () => {
     setEditingMaterial(null);
     setNombre('');
     setStock('');
-    setPrecio('');
     setIsModalOpen(true);
   };
 
@@ -43,7 +40,6 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
     setEditingMaterial(m);
     setNombre(m.nombre);
     setStock(String(m.stock));
-    setPrecio(String(m.precio));
     setIsModalOpen(true);
   };
 
@@ -57,7 +53,7 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
       id: editingMaterial ? editingMaterial.id : generateId(),
       nombre: nombre.trim(),
       stock: parseInt(stock, 10) || 0,
-      precio: parseFloat(precio) || 0
+      precio: 0
     };
 
     let updatedList = [...data.materiales];
@@ -74,7 +70,7 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
     });
 
     setIsModalOpen(false);
-    onToast(editingMaterial ? 'Material actualizado' : 'Material agregado al inventario');
+    onToast(editingMaterial ? 'Material actualizado' : 'Material agregado');
   };
 
   const handleDelete = (id: string) => {
@@ -101,11 +97,6 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
     });
   };
 
-  const totalInventoryValue = data.materiales.reduce(
-    (acc, m) => acc + (Number(m.stock) || 0) * (Number(m.precio) || 0),
-    0
-  );
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -113,11 +104,10 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
             <Package className="w-7 h-7 text-emerald-400" />
-            <span>Registro de Materiales e Insumos</span>
+            <span>Registro de Materiales</span>
           </h1>
           <p className="text-xs text-neutral-400 mt-1">
-            Materiales y repuestos disponibles para usar en la sección de <strong className="text-neutral-200">Trabajos</strong>. Valor total en stock: {' '}
-            <span className="text-emerald-400 font-bold">{formatCurrency(totalInventoryValue)}</span>
+            Control e inventario de materiales e insumos disponibles en el taller para trabajar.
           </p>
         </div>
 
@@ -136,25 +126,21 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
           <table className="w-full text-left text-xs text-neutral-300">
             <thead className="bg-neutral-950/80 text-neutral-400 font-semibold uppercase tracking-wider text-[11px]">
               <tr>
-                <th className="px-4 py-3">Material / Repuesto</th>
+                <th className="px-4 py-3">Material / Insumo</th>
                 <th className="px-4 py-3">Stock Disponible</th>
-                <th className="px-4 py-3">Precio Unitario</th>
-                <th className="px-4 py-3">Valor Total</th>
                 <th className="px-4 py-3 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-800/60 bg-neutral-900">
               {data.materiales.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-neutral-500">
-                    No hay materiales en inventario.
+                  <td colSpan={3} className="px-4 py-8 text-center text-neutral-500">
+                    No hay materiales registrados.
                   </td>
                 </tr>
               ) : (
                 data.materiales.map((m) => {
                   const stockVal = Number(m.stock) || 0;
-                  const priceVal = Number(m.precio) || 0;
-                  const itemTotal = stockVal * priceVal;
 
                   return (
                     <tr key={m.id} className="hover:bg-neutral-800/40 transition-colors">
@@ -176,7 +162,7 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
                                 : 'bg-neutral-800 text-white'
                             }`}
                           >
-                            {stockVal}
+                            {stockVal} ud.
                           </span>
 
                           <button
@@ -187,10 +173,6 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
-                      </td>
-                      <td className="px-4 py-3 text-neutral-300">{formatCurrency(priceVal)}</td>
-                      <td className="px-4 py-3 font-bold text-emerald-400">
-                        {formatCurrency(itemTotal)}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1.5">
@@ -256,7 +238,7 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
             <div className="p-5 space-y-4">
               <div>
                 <label className="block text-xs font-semibold uppercase text-neutral-400 mb-1.5">
-                  Nombre del Material / Repuesto
+                  Nombre del Material / Insumo
                 </label>
                 <input
                   type="text"
@@ -267,35 +249,18 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-neutral-400 mb-1.5 flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Cantidad en Stock</span>
-                  </label>
-                  <input
-                    type="number"
-                    value={stock}
-                    onChange={(e) => setStock(e.target.value)}
-                    placeholder="10"
-                    className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-600 focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-neutral-400 mb-1.5 flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Precio Unitario (S/)</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={precio}
-                    onChange={(e) => setPrecio(e.target.value)}
-                    placeholder="45.00"
-                    className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-600 focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-neutral-400 mb-1.5 flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Cantidad en Stock</span>
+                </label>
+                <input
+                  type="number"
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
+                  placeholder="10"
+                  className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-600 focus:outline-none focus:border-emerald-500"
+                />
               </div>
             </div>
 

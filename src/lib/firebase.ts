@@ -40,11 +40,16 @@ export const auth: Auth = getAuth(app);
 
 export { signInWithEmailAndPassword, signOut, onAuthStateChanged, type User };
 
+function sanitizeForFirestore<T>(data: T): T {
+  if (data === undefined) return null as unknown as T;
+  return JSON.parse(JSON.stringify(data, (_key, value) => (value === undefined ? null : value)));
+}
+
 export async function saveUserData(user: User, data: AppData): Promise<boolean> {
   if (!user) return false;
   try {
     const docRef = doc(db, 'users', user.uid, 'data', 'mainData');
-    await setDoc(docRef, {
+    const rawPayload = {
       trabajos: data.trabajos || [],
       trabajadores: data.trabajadores || [],
       materiales: data.materiales || [],
@@ -54,7 +59,8 @@ export async function saveUserData(user: User, data: AppData): Promise<boolean> 
       asistencias: data.asistencias || [],
       anticipos: data.anticipos || [],
       lastUpdate: new Date().toISOString()
-    });
+    };
+    await setDoc(docRef, sanitizeForFirestore(rawPayload));
     return true;
   } catch (error) {
     console.error('Error saving to Firestore:', error);

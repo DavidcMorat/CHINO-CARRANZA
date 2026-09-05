@@ -18,6 +18,7 @@ import {
   Moon
 } from 'lucide-react';
 import { LogoHeader } from './LogoHeader';
+import { PWAInstallButton } from './PWAInstallButton';
 
 export type SectionType =
   | 'dashboard'
@@ -59,7 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badge: pendingJobsCount > 0 ? pendingJobsCount : undefined
     },
     { id: 'trabajadores', label: 'Trabajadores', icon: <Users className="w-4 h-4" /> },
-    { id: 'materiales', label: 'Materiales', icon: <Package className="w-4 h-4" /> },
+    { id: 'materiales', label: 'Registro de Materiales', icon: <Package className="w-4 h-4" /> },
     { id: 'clientes', label: 'Clientes', icon: <UserCheck className="w-4 h-4" /> },
     { id: 'presupuestos', label: 'Presupuestos', icon: <FileSpreadsheet className="w-4 h-4" /> },
     { id: 'egresos', label: 'Egresos', icon: <TrendingDown className="w-4 h-4" /> },
@@ -129,6 +130,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
 
+          {/* In-App PWA Install Button for PC and Mobile */}
+          <PWAInstallButton variant="sidebar" />
+
           {/* Theme Toggle Button */}
           <button
             onClick={onToggleTheme}
@@ -168,6 +172,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5">
+          <PWAInstallButton variant="header" />
           <button
             onClick={onToggleTheme}
             className="p-2 rounded-lg text-neutral-300 hover:bg-neutral-800"
