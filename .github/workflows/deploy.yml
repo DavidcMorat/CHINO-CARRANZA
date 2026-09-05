@@ -24,14 +24,7 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: |
-          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ] || [ -f yarn.lock ]; then
-            echo "Lockfile found — running npm ci"
-            npm ci
-          else
-            echo "Lockfile not found — running npm install"
-            npm install
-          fi
+        run: npm ci || npm install
 
       - name: Build web app
         run: npm run build
