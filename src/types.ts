@@ -79,6 +79,18 @@ export interface Anticipo {
   fecha: string; // YYYY-MM-DD
 }
 
+export interface NotaImportante {
+  id: string;
+  titulo: string;
+  descripcion: string;
+  fecha: string; // YYYY-MM-DD
+  tipo: 'pago' | 'ingreso' | 'egreso' | 'nota';
+  prioridad: 'alta' | 'media' | 'baja';
+  monto?: number;
+  completada: boolean;
+  hora?: string; // HH:MM opcional
+}
+
 export interface AppData {
   trabajos: Trabajo[];
   trabajadores: Trabajador[];
@@ -88,4 +100,5 @@ export interface AppData {
   egresos: Egreso[];
   asistencias: Asistencia[];
   anticipos: Anticipo[];
+  notasImportantes?: NotaImportante[];
 }

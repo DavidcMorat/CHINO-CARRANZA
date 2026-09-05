@@ -23,6 +23,7 @@ import { CalendarioView } from './components/CalendarioView';
 import { ExportarView } from './components/ExportarView';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { setupFCMForegroundListener } from './lib/firebaseMessaging';
 
 interface ToastItem {
   id: string;
@@ -55,7 +56,8 @@ export default function App() {
     presupuestos: [],
     egresos: [],
     asistencias: [],
-    anticipos: []
+    anticipos: [],
+    notasImportantes: []
   });
 
   // Toast State
@@ -91,13 +93,22 @@ export default function App() {
           presupuestos: [],
           egresos: [],
           asistencias: [],
-          anticipos: []
+          anticipos: [],
+          notasImportantes: []
         });
       }
       setLoadingAuth(false);
     });
 
     return () => unsubscribeAuth();
+  }, []);
+
+  // Foreground FCM Push Notification Listener
+  useEffect(() => {
+    const unsubFCM = setupFCMForegroundListener((payload) => {
+      showToast(`🔔 ${payload.title}: ${payload.body}`, 'success');
+    });
+    return () => unsubFCM();
   }, []);
 
   const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -287,7 +298,13 @@ export default function App() {
             />
           )}
 
-          {currentSection === 'calendario' && <CalendarioView data={appData} />}
+          {currentSection === 'calendario' && (
+            <CalendarioView
+              data={appData}
+              onSaveData={handleSaveData}
+              onToast={showToast}
+            />
+          )}
 
           {currentSection === 'exportar' && (
             <ExportarView data={appData} onToast={showToast} />

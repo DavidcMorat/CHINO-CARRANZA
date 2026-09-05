@@ -20,7 +20,8 @@ export default defineConfig(() => {
           'pwa-512x512.png',
           'pwa-maskable-512x512.png',
           'favicon-32x32.png',
-          'favicon-16x16.png'
+          'favicon-16x16.png',
+          'firebase-messaging-sw.js'
         ],
         manifest: {
           id: './',

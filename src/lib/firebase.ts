@@ -58,6 +58,7 @@ export async function saveUserData(user: User, data: AppData): Promise<boolean> 
       egresos: data.egresos || [],
       asistencias: data.asistencias || [],
       anticipos: data.anticipos || [],
+      notasImportantes: data.notasImportantes || [],
       lastUpdate: new Date().toISOString()
     };
     await setDoc(docRef, sanitizeForFirestore(rawPayload));
@@ -89,7 +90,8 @@ export async function loadUserData(user: User): Promise<AppData | null> {
         presupuestos: fd.presupuestos || [],
         egresos: fd.egresos || [],
         asistencias: fd.asistencias || [],
-        anticipos: fd.anticipos || []
+        anticipos: fd.anticipos || [],
+        notasImportantes: fd.notasImportantes || []
       };
     }
   } catch (error) {
@@ -114,7 +116,8 @@ export async function loadUserData(user: User): Promise<AppData | null> {
     presupuestos: [],
     egresos: [],
     asistencias: [],
-    anticipos: []
+    anticipos: [],
+    notasImportantes: []
   };
 }
 
@@ -134,7 +137,8 @@ export function subscribeUserData(user: User, onUpdate: (data: AppData) => void)
           presupuestos: fd.presupuestos || [],
           egresos: fd.egresos || [],
           asistencias: fd.asistencias || [],
-          anticipos: fd.anticipos || []
+          anticipos: fd.anticipos || [],
+          notasImportantes: fd.notasImportantes || []
         });
       }
     },
