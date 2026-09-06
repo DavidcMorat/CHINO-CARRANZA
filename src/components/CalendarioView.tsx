@@ -33,17 +33,6 @@ import {
 import { AppData, NotaImportante, AutoNotificationConfig } from '../types';
 import { formatCurrency, generateId, getTodayStr } from '../lib/dateUtils';
 import {
-  requestPushNotificationPermission,
-  sendLocalNotification,
-  FCM_VAPID_KEY,
-  isFCMSupported
-} from '../lib/firebaseMessaging';
-import {
-  subscribeUserToWebPush,
-  sendTestBackgroundPush,
-  getExistingPushSubscription
-} from '../lib/pushSubscription';
-import {
   getCalendarAlerts,
   checkAndSendAutomaticNotifications,
   DEFAULT_NOTIFICATION_CONFIG
@@ -70,15 +59,8 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailModalDateStr, setDetailModalDateStr] = useState<string>(getTodayStr());
 
-  // FCM & Notification State
-  const [fcmSupported, setFcmSupported] = useState<boolean>(true);
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
-    typeof Notification !== 'undefined' ? Notification.permission : 'default'
-  );
-  const [fcmToken, setFcmToken] = useState<string>(() => localStorage.getItem('fcm_token') || '');
-  const [isActivatingFCM, setIsActivatingFCM] = useState(false);
-  const [showFCMModal, setShowFCMModal] = useState(false);
-  const [copiedToken, setCopiedToken] = useState(false);
+  // Config Modal State
+  const [showConfigModal, setShowConfigModal] = useState(false);
   const [isCheckingAuto, setIsCheckingAuto] = useState(false);
   const [notifHistory, setNotifHistory] = useState<any[]>(() => {
     try {
@@ -87,9 +69,6 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
       return [];
     }
   });
-  const [isTestingBackgroundPush, setIsTestingBackgroundPush] = useState(false);
-  const [bgTestCountdown, setBgTestCountdown] = useState<number | null>(null);
-  const [isWebPushActive, setIsWebPushActive] = useState(false);
 
   // Notification Config & Alerts for Today
   const notifConfig = data.configuracionNotificaciones || DEFAULT_NOTIFICATION_CONFIG;
@@ -104,16 +83,6 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
   const [notePrioridad, setNotePrioridad] = useState<'alta' | 'media' | 'baja'>('media');
   const [noteMonto, setNoteMonto] = useState('');
   const [noteHora, setNoteHora] = useState('');
-
-  useEffect(() => {
-    isFCMSupported().then(setFcmSupported);
-    if (typeof Notification !== 'undefined') {
-      setNotificationPermission(Notification.permission);
-    }
-    getExistingPushSubscription().then((sub) => {
-      setIsWebPushActive(!!sub);
-    });
-  }, [showFCMModal]);
 
   const monthNames = [
     'Enero',
@@ -327,84 +296,6 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
     setSelectedDayStr(dateStr);
   };
 
-  // Activate FCM & Request Browser Permission & Web Push
-  const handleEnableNotifications = async () => {
-    setIsActivatingFCM(true);
-    try {
-      const result = await requestPushNotificationPermission();
-      if (result.success) {
-        if (result.token) setFcmToken(result.token);
-        setNotificationPermission('granted');
-
-        // Suscribir también a Web Push estándar para segundo plano / app cerrada
-        try {
-          const webPushRes = await subscribeUserToWebPush();
-          if (webPushRes.success) {
-            setIsWebPushActive(true);
-          }
-        } catch (wpErr) {
-          console.warn('Error registrando Web Push:', wpErr);
-        }
-
-        onToast?.('¡Notificaciones Push activadas para este dispositivo (incluso en 2do plano)!', 'success');
-        await sendLocalNotification(
-          '🔔 Notificaciones Activadas - EL CHINO',
-          'Recibirás alertas de pagos, ingresos, egresos y notas importantes del calendario.'
-        );
-      } else {
-        onToast?.(result.error || 'No se pudieron activar las notificaciones', 'error');
-        if (typeof Notification !== 'undefined') {
-          setNotificationPermission(Notification.permission);
-        }
-      }
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Error al activar notificaciones';
-      onToast?.(msg, 'error');
-    } finally {
-      setIsActivatingFCM(false);
-    }
-  };
-
-  // Probar notificación Push en segundo plano con retardo de 5 segundos
-  const handleTestBackgroundPush = async () => {
-    setIsTestingBackgroundPush(true);
-    try {
-      const res = await sendTestBackgroundPush(5);
-      if (res.success) {
-        onToast?.(res.message, 'success');
-        setBgTestCountdown(5);
-        const interval = setInterval(() => {
-          setBgTestCountdown((prev) => {
-            if (prev === null || prev <= 1) {
-              clearInterval(interval);
-              return null;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-      } else {
-        onToast?.(res.message, 'error');
-      }
-    } catch (e: any) {
-      onToast?.(e?.message || 'Error al programar prueba de segundo plano', 'error');
-    } finally {
-      setIsTestingBackgroundPush(false);
-    }
-  };
-
-  // Test local push notification
-  const handleTestNotification = async () => {
-    const success = await sendLocalNotification(
-      '🚗 EL CHINO CARRANZA - Notificación de Prueba',
-      'El sistema de notificaciones está funcionando correctamente en este dispositivo.'
-    );
-    if (success) {
-      onToast?.('Notificación de prueba enviada al dispositivo', 'success');
-    } else {
-      onToast?.('Permite las notificaciones en tu navegador para ver la alerta', 'error');
-    }
-  };
-
   // Toggle Auto Notification Preferences
   const handleToggleAutoConfig = (field: keyof AutoNotificationConfig) => {
     const updated: AutoNotificationConfig = {
@@ -477,15 +368,22 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
         ? parts.join(' | ')
         : 'Sin eventos ni compromisos registrados para esta fecha.';
 
-    const sent = await sendLocalNotification(title, body, {
-      tag: `day-${dateStr}`
-    });
+    onToast?.(`${title}: ${body}`, 'success');
 
-    if (sent) {
-      onToast?.(`Notificación enviada para la fecha ${dateStr}`, 'success');
-    } else {
-      onToast?.('Activa las notificaciones del navegador para recibir las alertas', 'error');
-    }
+    try {
+      const histRaw = localStorage.getItem('chino_notif_history') || '[]';
+      const history = JSON.parse(histRaw);
+      history.unshift({
+        id: 'notif_manual_' + Date.now(),
+        timestamp: new Date().toISOString(),
+        title,
+        body,
+        tipo: 'manual',
+        alertCount: parts.length
+      });
+      localStorage.setItem('chino_notif_history', JSON.stringify(history.slice(0, 25)));
+      setNotifHistory(history.slice(0, 25));
+    } catch {}
   };
 
   // Add Note Modal
@@ -549,15 +447,6 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
     onToast?.('Nota eliminada', 'success');
   };
 
-  const handleCopyToken = () => {
-    if (fcmToken) {
-      navigator.clipboard.writeText(fcmToken);
-      setCopiedToken(true);
-      setTimeout(() => setCopiedToken(false), 2500);
-      onToast?.('Token copiado al portapapeles', 'success');
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -573,21 +462,13 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Notifications Button */}
+          {/* Config Alerts Button */}
           <button
-            onClick={() => setShowFCMModal(true)}
-            className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border transition-all ${
-              notificationPermission === 'granted'
-                ? 'bg-neutral-900 border-neutral-800 text-neutral-200 hover:border-emerald-700'
-                : 'bg-red-950/60 border-red-800/80 text-red-300 hover:bg-red-900/60'
-            }`}
+            onClick={() => setShowConfigModal(true)}
+            className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border bg-neutral-900 border-neutral-800 text-neutral-200 hover:border-purple-600 transition-all"
           >
-            <BellRing
-              className={`w-4 h-4 ${
-                notificationPermission === 'granted' ? 'text-emerald-400' : 'text-red-400 animate-pulse'
-              }`}
-            />
-            <span>Notificaciones Push FCM</span>
+            <Sliders className="w-4 h-4 text-purple-400" />
+            <span>Configurar Alertas</span>
           </button>
 
           {/* New Note Button */}
@@ -601,7 +482,7 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
         </div>
       </div>
 
-      {/* Panel Superior: Alertas y Notificaciones Automáticas */}
+      {/* Panel Superior: Alertas y Notificaciones en la Barra Superior */}
       <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-3.5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-800">
           <div className="flex items-center gap-3">
@@ -617,7 +498,7 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm font-bold text-white tracking-wide">
-                  Sistema de Notificaciones Automáticas
+                  Alertas y Notificaciones en la Barra Superior
                 </h3>
                 <span
                   className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
@@ -626,11 +507,11 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
                       : 'bg-neutral-800 border-neutral-700 text-neutral-400'
                   }`}
                 >
-                  {notifConfig.enabled ? '● Automático Activo' : 'Pausado'}
+                  {notifConfig.enabled ? '● Alertas Activas' : 'Pausadas'}
                 </span>
               </div>
               <p className="text-xs text-neutral-400 mt-0.5">
-                Envía alertas automáticamente a tu dispositivo cuando hay pagos programados, presupuestos por vencer o notas importantes.
+                Se muestran arriba de la aplicación para avisarte en tiempo real de pagos a trabajadores, presupuestos por vencer y notas importantes.
               </p>
             </div>
           </div>
@@ -640,18 +521,18 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
               onClick={handleTriggerAutoCheckNow}
               disabled={isCheckingAuto}
               className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md transition-all"
-              title="Comprobar eventos de hoy y disparar notificación inmediata"
+              title="Comprobar eventos de hoy y actualizar alertas"
             >
               {isCheckingAuto ? (
                 <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <Send className="w-3.5 h-3.5" />
               )}
-              <span>Notificar Ahora</span>
+              <span>Comprobar Alertas</span>
             </button>
 
             <button
-              onClick={() => setShowFCMModal(true)}
+              onClick={() => setShowConfigModal(true)}
               className="px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-semibold flex items-center gap-1.5 border border-neutral-700 transition-colors"
             >
               <Sliders className="w-3.5 h-3.5 text-neutral-400" />
@@ -1688,146 +1569,42 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
         </div>
       )}
 
-      {/* MODAL: Centro de Notificaciones Firebase Cloud Messaging (FCM) */}
-      {showFCMModal && (
+      {/* MODAL: Configuración de Alertas en la Barra Superior */}
+      {showConfigModal && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-red-950/80 border border-red-800/60 flex items-center justify-center text-red-500">
-                  <BellRing className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-xl bg-purple-950/80 border border-purple-800/60 flex items-center justify-center text-purple-400">
+                  <Sliders className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white">
-                    Notificaciones Firebase Cloud Messaging (FCM)
+                    Configuración de Alertas Superiores
                   </h3>
                   <p className="text-xs text-neutral-400">
-                    Alertas push automáticas en celulares y computadoras
+                    Controla qué avisos se muestran arriba en la aplicación
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => setShowFCMModal(false)}
+                onClick={() => setShowConfigModal(false)}
                 className="p-1.5 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Permission Status Box */}
-            <div
-              className={`p-4 rounded-xl border flex items-start gap-3 text-xs ${
-                notificationPermission === 'granted'
-                  ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200'
-                  : notificationPermission === 'denied'
-                  ? 'bg-red-950/30 border-red-800/60 text-red-200'
-                  : 'bg-amber-950/30 border-amber-800/60 text-amber-200'
-              }`}
-            >
-              <div className="mt-0.5">
-                {notificationPermission === 'granted' ? (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                ) : (
-                  <Bell className="w-5 h-5 text-amber-400" />
-                )}
-              </div>
+            {/* Information Banner */}
+            <div className="p-4 rounded-xl border border-neutral-800 bg-neutral-950 text-xs flex items-start gap-3">
+              <Info className="w-5 h-5 text-purple-400 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <div className="font-bold">
-                  Estado actual del navegador:{' '}
-                  <span className="uppercase">
-                    {notificationPermission === 'granted'
-                      ? 'Permitido (Activo)'
-                      : notificationPermission === 'denied'
-                      ? 'Bloqueado por el navegador'
-                      : 'Pendiente de activación'}
-                  </span>
+                <div className="font-semibold text-neutral-200">
+                  Alertas visibles arriba de la app
                 </div>
-                <p className="text-[11px] opacity-90 leading-relaxed">
-                  {notificationPermission === 'granted'
-                    ? 'Este dispositivo está listo para recibir alertas de pagos a personal, vencimiento de presupuestos, egresos y notas importantes.'
-                    : notificationPermission === 'denied'
-                    ? 'El navegador tiene bloqueadas las notificaciones. Haz clic en el ícono del candado 🔒 en la barra de direcciones de tu navegador y cambia Notificaciones a "Permitir".'
-                    : 'Haz clic en el botón inferior para solicitar permiso al navegador y generar el Token de este dispositivo.'}
+                <p className="text-[11px] text-neutral-400 leading-relaxed">
+                  Todas las alertas de pagos, compromisos y presupuestos aparecen en la barra superior al abrir el sistema, sin depender de ventanas emergentes externas ni permisos del navegador.
                 </p>
-              </div>
-            </div>
-
-            {/* FCM Actions */}
-            <div className="flex flex-wrap gap-2.5">
-              {notificationPermission !== 'granted' ? (
-                <button
-                  onClick={handleEnableNotifications}
-                  disabled={isActivatingFCM}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-lg shadow-red-900/40 transition-all"
-                >
-                  {isActivatingFCM ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <BellRing className="w-4 h-4" />
-                  )}
-                  <span>Activar Notificaciones Push Ahora</span>
-                </button>
-              ) : (
-                <button
-                  onClick={handleEnableNotifications}
-                  disabled={isActivatingFCM}
-                  className="py-2.5 px-4 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-semibold text-xs flex items-center gap-2 border border-neutral-700 transition-colors"
-                  title="Renovar suscripción push en segundo plano"
-                >
-                  <Radio className="w-4 h-4 text-emerald-400" />
-                  <span>Sincronizar Dispositivo</span>
-                </button>
-              )}
-
-              <button
-                onClick={handleTestNotification}
-                className="py-2.5 px-4 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold text-xs flex items-center gap-2 border border-neutral-700 transition-colors"
-              >
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>Probar Notificación en Pantalla</span>
-              </button>
-
-              <button
-                onClick={handleTestBackgroundPush}
-                disabled={isTestingBackgroundPush || bgTestCountdown !== null}
-                className="py-2.5 px-4 rounded-xl bg-indigo-950/80 hover:bg-indigo-900/90 text-indigo-200 font-semibold text-xs flex items-center gap-2 border border-indigo-800/80 shadow-md transition-colors"
-              >
-                <Smartphone className="w-4 h-4 text-indigo-400" />
-                <span>
-                  {bgTestCountdown !== null
-                    ? `¡Sal de la app o bloquea el móvil! (${bgTestCountdown}s)`
-                    : 'Probar Fuera de la App (en 5 seg)'}
-                </span>
-              </button>
-            </div>
-
-            {/* Tarjeta Informativa: Notificaciones Fuera de la App */}
-            <div className="p-4 rounded-xl bg-gradient-to-br from-neutral-900 via-neutral-900 to-indigo-950/40 border border-neutral-800 text-xs space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 font-bold text-white">
-                  <Smartphone className="w-4 h-4 text-indigo-400" />
-                  <span>Notificaciones cuando no estás en la App (Segundo Plano)</span>
-                </div>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                  isWebPushActive
-                    ? 'bg-emerald-950/60 border-emerald-800 text-emerald-300'
-                    : 'bg-amber-950/60 border-amber-800 text-amber-300'
-                }`}>
-                  {isWebPushActive ? '● Segundo Plano Conectado' : '○ Sincronizando'}
-                </span>
-              </div>
-              <p className="text-[11px] text-neutral-300 leading-relaxed">
-                El sistema cuenta con un motor Web Push en el servidor. Cuando no tienes la app abierta o tu teléfono está bloqueado, el servidor envía la alerta directamente a través de los servicios de Google (FCM) / Apple Push.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px] text-neutral-400">
-                <div className="bg-neutral-950/70 p-2.5 rounded-lg border border-neutral-800/70">
-                  <span className="font-semibold text-neutral-200 block mb-1">📱 En Celulares Android:</span>
-                  <span>Agrega la app a la pantalla principal (menú de Chrome &gt; "Instalar aplicación"). Asegúrate de que el ahorro de batería de tu teléfono no bloquee las notificaciones en segundo plano.</span>
-                </div>
-                <div className="bg-neutral-950/70 p-2.5 rounded-lg border border-neutral-800/70">
-                  <span className="font-semibold text-neutral-200 block mb-1">🍏 En iPhone / iPad:</span>
-                  <span>En Safari, pulsa Compartir &gt; "Agregar a pantalla de inicio". Abre la app desde el icono instalado para que iOS habilite Web Push en segundo plano (requiere iOS 16.4+).</span>
-                </div>
               </div>
             </div>
 
@@ -1837,7 +1614,7 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
                 <div className="flex items-center gap-2">
                   <Sliders className="w-4 h-4 text-purple-400" />
                   <span className="font-bold text-white text-xs">
-                    Reglas de Notificación Automática
+                    Activar Alertas Automáticas
                   </span>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -1850,10 +1627,6 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
                   <div className="w-9 h-5 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
                 </label>
               </div>
-
-              <p className="text-[11px] text-neutral-400 leading-relaxed">
-                El sistema escanea el calendario y envía notificaciones automáticamente al dispositivo sin necesidad de hacer clic manual:
-              </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                 <label className="flex items-start gap-2 p-2 rounded-lg bg-neutral-900 border border-neutral-800 cursor-pointer hover:border-neutral-700 transition-colors">
@@ -1891,7 +1664,7 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
                   />
                   <div>
                     <span className="font-semibold text-neutral-200 block">📌 Notas Importantes</span>
-                    <span className="text-[10px] text-neutral-400">Recordatorios y notas urgentes del día</span>
+                    <span className="text-[10px] text-neutral-400">Recordatorios y notas del día</span>
                   </div>
                 </label>
 
@@ -1939,24 +1712,24 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
                 <button
                   onClick={handleTriggerAutoCheckNow}
                   disabled={isCheckingAuto}
-                  className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md transition-all"
+                  className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md transition-all"
                 >
                   {isCheckingAuto ? (
                     <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <Send className="w-3.5 h-3.5" />
                   )}
-                  <span>Comprobar y Enviar Notificación Inmediata</span>
+                  <span>Comprobar y Actualizar Alertas</span>
                 </button>
               </div>
             </div>
 
-            {/* Historial de Notificaciones Automáticas */}
+            {/* Historial de Alertas */}
             {notifHistory.length > 0 && (
               <div className="space-y-2 bg-neutral-950 p-3.5 rounded-xl border border-neutral-800 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-neutral-300">
-                    Historial de Notificaciones Automáticas ({notifHistory.length})
+                    Historial de Alertas Generadas ({notifHistory.length})
                   </span>
                   <button
                     onClick={handleClearNotifHistory}
@@ -1970,7 +1743,7 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
                   {notifHistory.map((item, idx) => (
                     <div
                       key={item.id || idx}
-                      className="p-2 rounded-lg bg-neutral-900 border border-neutral-850 text-[11px]"
+                      className="p-2 rounded-lg bg-neutral-900 border border-neutral-800 text-[11px]"
                     >
                       <div className="flex items-center justify-between text-neutral-400 text-[10px]">
                         <span className="font-semibold text-neutral-300">{item.title}</span>
@@ -1983,65 +1756,9 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
               </div>
             )}
 
-            {/* Token details */}
-            <div className="space-y-2 bg-neutral-950 p-4 rounded-xl border border-neutral-800 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-neutral-300">
-                  Token FCM de este Dispositivo:
-                </span>
-                {fcmToken && (
-                  <button
-                    onClick={handleCopyToken}
-                    className="flex items-center gap-1 text-red-400 hover:text-red-300 font-medium"
-                  >
-                    {copiedToken ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-emerald-400">Copiado</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Copiar Token</span>
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-
-              {fcmToken ? (
-                <div className="p-2.5 bg-neutral-900 rounded-lg border border-neutral-800 text-[11px] font-mono text-neutral-400 break-all max-h-20 overflow-y-auto">
-                  {fcmToken}
-                </div>
-              ) : (
-                <p className="text-[11px] text-neutral-500 italic">
-                  Presiona &quot;Activar Notificaciones Push&quot; para registrar y generar el Token único de este equipo.
-                </p>
-              )}
-
-              <div className="pt-2 border-t border-neutral-850 text-[11px] text-neutral-400">
-                <span className="font-semibold text-neutral-300">Clave VAPID Web Push vinculada:</span>
-                <div className="font-mono text-neutral-500 truncate mt-0.5">{FCM_VAPID_KEY}</div>
-              </div>
-            </div>
-
-            {/* How to send from Firebase Console */}
-            <div className="space-y-1.5 text-xs text-neutral-400 bg-neutral-950/60 p-3.5 rounded-xl border border-neutral-850">
-              <div className="font-semibold text-white flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-red-400" />
-                <span>¿Cómo enviar notificaciones desde Firebase Console?</span>
-              </div>
-              <ol className="list-decimal pl-4 space-y-1 text-[11px]">
-                <li>Entra a la consola de Firebase &gt; menú <strong>Messaging (Mensajería)</strong>.</li>
-                <li>Haz clic en <strong>Crear tu primera campaña</strong> &gt; Mensajes de Firebase Notifications.</li>
-                <li>Escribe el título y cuerpo.</li>
-                <li>En destino puedes seleccionar a todos los usuarios o hacer clic en <strong>Enviar mensaje de prueba</strong> pegando el Token FCM copiado arriba.</li>
-              </ol>
-            </div>
-
             <div className="flex justify-end pt-2">
               <button
-                onClick={() => setShowFCMModal(false)}
+                onClick={() => setShowConfigModal(false)}
                 className="px-4 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-semibold"
               >
                 Cerrar

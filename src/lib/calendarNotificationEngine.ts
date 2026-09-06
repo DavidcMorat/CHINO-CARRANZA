@@ -1,7 +1,5 @@
 import { AppData, AutoNotificationConfig, Trabajador, Anticipo, Presupuesto, NotaImportante, Egreso, Trabajo } from '../types';
 import { getTodayStr, getTomorrowStr, parseDateString, formatCurrency } from './dateUtils';
-import { sendLocalNotification } from './firebaseMessaging';
-import { syncAlertsWithServer, saveAlertsToIndexedDB } from './pushSubscription';
 
 export const DEFAULT_NOTIFICATION_CONFIG: AutoNotificationConfig = {
   enabled: true,
@@ -68,6 +66,8 @@ export function getCalendarAlerts(
   conteoPagos: number;
   conteoNotas: number;
   conteoPresupuestos: number;
+  conteoEgresos: number;
+  conteoTrabajos: number;
   todayStr: string;
 } {
   const config = customConfig || data.configuracionNotificaciones || DEFAULT_NOTIFICATION_CONFIG;
@@ -80,6 +80,8 @@ export function getCalendarAlerts(
   let conteoPagos = 0;
   let conteoNotas = 0;
   let conteoPresupuestos = 0;
+  let conteoEgresos = 0;
+  let conteoTrabajos = 0;
 
   // 1. Pagos de sueldos a trabajadores HOY
   if (config.notificarPagos) {
@@ -167,6 +169,7 @@ export function getCalendarAlerts(
       if (e.fecha === todayStr && e.tipo !== 'ingreso') {
         const monto = Number(e.monto) || 0;
         totalEgresosHoy += monto;
+        conteoEgresos++;
         alerts.push({
           id: `egreso-${e.id}`,
           tipo: 'egreso',
@@ -185,6 +188,7 @@ export function getCalendarAlerts(
   if (config.notificarTrabajos) {
     (data.trabajos || []).forEach((t) => {
       if (t.fecha === todayStr && t.estado !== 'completado') {
+        conteoTrabajos++;
         alerts.push({
           id: `trabajo-${t.id}`,
           tipo: 'trabajo',
@@ -225,6 +229,8 @@ export function getCalendarAlerts(
     conteoPagos,
     conteoNotas,
     conteoPresupuestos,
+    conteoEgresos,
+    conteoTrabajos,
     todayStr
   };
 }
@@ -314,11 +320,6 @@ export async function checkAndSendAutomaticNotifications(
   const summary = getCalendarAlerts(data, config);
   const { alerts, todayStr } = summary;
 
-  // Siempre sincronizar con el servidor y con IndexedDB para notificaciones en segundo plano
-  syncAlertsWithServer(summary).catch((err) => {
-    console.warn('[CalendarEngine] Sync con servidor en background:', err);
-  });
-
   if (alerts.length === 0) {
     if (options?.force) {
       options.onToast?.('Calendario al día: no hay pagos ni compromisos pendientes para hoy', 'success');
@@ -326,68 +327,30 @@ export async function checkAndSendAutomaticNotifications(
     return { sent: false, alertCount: 0, reason: 'Sin alertas pendientes para hoy' };
   }
 
-  // Crear una firma única basada en los IDs de las alertas del día
-  const fingerprint = `${todayStr}::${alerts.map((a) => `${a.id}_${a.monto || 0}`).sort().join('|')}`;
-  const lastSentFingerprint = localStorage.getItem('chino_last_auto_notif_fingerprint');
-  const lastSentTime = localStorage.getItem('chino_last_auto_notif_time');
-
-  // Si ya se envió exactamente esta misma combinación hoy y han pasado menos de 4 horas (salvo forzado manual)
-  const fourHoursMs = 4 * 60 * 60 * 1000;
-  const isRecent = lastSentTime && Date.now() - Number(lastSentTime) < fourHoursMs;
-
-  if (!options?.force && lastSentFingerprint === fingerprint && isRecent) {
-    return {
-      sent: false,
-      alertCount: alerts.length,
-      reason: 'Notificación ya enviada recientemente para estos mismos eventos'
-    };
-  }
-
-  // Generar contenido y enviar notificación nativa
+  // Generar contenido para alertas dentro de la app
   const { title, body } = buildNotificationContent(summary);
 
+  // Guardar en historial interno de alertas de la app
   try {
-    const success = await sendLocalNotification(title, body, {
-      tag: `auto-calendar-${todayStr}`,
-      data: {
-        url: '/',
-        todayStr,
-        alertsCount: alerts.length
-      }
+    const histRaw = localStorage.getItem('chino_notif_history') || '[]';
+    const history = JSON.parse(histRaw);
+    history.unshift({
+      id: 'notif_' + Date.now(),
+      timestamp: new Date().toISOString(),
+      title,
+      body,
+      tipo: summary.conteoPagos > 0 ? 'pagos' : summary.conteoNotas > 0 ? 'notas' : 'general',
+      alertCount: alerts.length
     });
-
-    if (success) {
-      localStorage.setItem('chino_last_auto_notif_fingerprint', fingerprint);
-      localStorage.setItem('chino_last_auto_notif_time', String(Date.now()));
-
-      // Guardar en historial de notificaciones
-      try {
-        const histRaw = localStorage.getItem('chino_notif_history') || '[]';
-        const history = JSON.parse(histRaw);
-        history.unshift({
-          id: 'notif_' + Date.now(),
-          timestamp: new Date().toISOString(),
-          title,
-          body,
-          tipo: summary.conteoPagos > 0 ? 'pagos' : summary.conteoNotas > 0 ? 'notas' : 'general',
-          alertCount: alerts.length
-        });
-        // Mantener últimas 25
-        localStorage.setItem('chino_notif_history', JSON.stringify(history.slice(0, 25)));
-      } catch (err) {
-        console.warn('Error guardando en historial de notificaciones:', err);
-      }
-
-      if (options?.onToast) {
-        options.onToast(`🔔 Notificación automática enviada: ${title}`, 'success');
-      }
-
-      return { sent: true, alertCount: alerts.length, reason: 'Notificación enviada con éxito' };
-    } else {
-      return { sent: false, alertCount: alerts.length, reason: 'Permiso de notificaciones no concedido en el navegador' };
-    }
-  } catch (error) {
-    console.error('Error al enviar notificación automática:', error);
-    return { sent: false, alertCount: alerts.length, reason: String(error) };
+    // Mantener últimas 25
+    localStorage.setItem('chino_notif_history', JSON.stringify(history.slice(0, 25)));
+  } catch (err) {
+    console.warn('Error guardando en historial de notificaciones:', err);
   }
+
+  if (options?.onToast && options.force) {
+    options.onToast(`🔔 ${title}: ${body}`, 'success');
+  }
+
+  return { sent: true, alertCount: alerts.length, reason: 'Alertas actualizadas en la barra superior' };
 }

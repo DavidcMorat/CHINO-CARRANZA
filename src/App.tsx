@@ -21,10 +21,9 @@ import { EgresosView } from './components/EgresosView';
 import { CalendarioView } from './components/CalendarioView';
 import { ExportarView } from './components/ExportarView';
 import { OfflineIndicator } from './components/OfflineIndicator';
-import { CheckCircle2, AlertCircle, BellRing, Calendar as CalendarIcon, ChevronRight } from 'lucide-react';
-import { setupFCMForegroundListener } from './lib/firebaseMessaging';
+import { CheckCircle2, AlertCircle, Calendar as CalendarIcon } from 'lucide-react';
+import { NotificacionesBar } from './components/NotificacionesBar';
 import { checkAndSendAutomaticNotifications, getCalendarAlerts } from './lib/calendarNotificationEngine';
-import { subscribeUserToWebPush } from './lib/pushSubscription';
 import { formatCurrency } from './lib/dateUtils';
 
 interface ToastItem {
@@ -103,24 +102,6 @@ export default function App() {
     });
 
     return () => unsubscribeAuth();
-  }, []);
-
-  // Registrar suscripción de Web Push en segundo plano si el usuario ya concedió permiso
-  useEffect(() => {
-    if (!currentUser) return;
-    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      subscribeUserToWebPush(currentUser.uid).catch((err) => {
-        console.warn('[App] Error al verificar suscripción Web Push en segundo plano:', err);
-      });
-    }
-  }, [currentUser]);
-
-  // Foreground FCM Push Notification Listener
-  useEffect(() => {
-    const unsubFCM = setupFCMForegroundListener((payload) => {
-      showToast(`🔔 ${payload.title}: ${payload.body}`, 'success');
-    });
-    return () => unsubFCM();
   }, []);
 
   // Motor Automático de Notificaciones del Calendario (Pagos, Egresos, Notas)
@@ -285,48 +266,21 @@ export default function App() {
       {/* Main Content View Container */}
       <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-h-screen pt-16 lg:pt-8 pb-20 lg:pb-8">
         <div className="max-w-7xl mx-auto space-y-5">
-          {/* Banner de Alerta del Calendario para Hoy (Pagos a trabajadores, presupuestos, notas) */}
-          {calendarAlerts.alerts.length > 0 && currentSection !== 'calendario' && (
-            <div className="bg-gradient-to-r from-purple-950/80 via-neutral-900 to-neutral-900 border border-purple-800/70 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg shadow-purple-950/30 animate-in fade-in duration-300">
-              <div className="flex items-start sm:items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-900/60 border border-purple-700 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
-                  <BellRing className="w-5 h-5 text-purple-400 animate-pulse" />
-                </div>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-bold text-purple-300 uppercase tracking-wider">
-                      {calendarAlerts.conteoPagos > 0
-                        ? '⚠️ Alerta de Pagos de Personal Hoy'
-                        : '🔔 Notificaciones del Calendario para Hoy'}
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-900 text-purple-200 border border-purple-700 font-semibold">
-                      {calendarAlerts.alerts.length} evento{calendarAlerts.alerts.length > 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <p className="text-xs text-neutral-300 mt-1">
-                    {calendarAlerts.totalPagosHoy > 0 && (
-                      <span className="text-purple-300 font-semibold mr-2">
-                        Total pagos de hoy: {formatCurrency(calendarAlerts.totalPagosHoy)}
-                      </span>
-                    )}
-                    <span className="text-neutral-400">
-                      {calendarAlerts.alerts.slice(0, 2).map((a) => a.titulo).join(' • ')}
-                      {calendarAlerts.alerts.length > 2 && ` (+${calendarAlerts.alerts.length - 2} más)`}
-                    </span>
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setCurrentSection('calendario')}
-                className="self-end sm:self-center shrink-0 px-3.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-xl shadow-md transition-colors flex items-center gap-1.5"
-              >
-                <CalendarIcon className="w-3.5 h-3.5" />
-                <span>Ver en Calendario</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
+          {/* Notificaciones arriba de la App (Barra Superior) */}
+          <NotificacionesBar
+            alerts={calendarAlerts.alerts}
+            totalPagosHoy={calendarAlerts.totalPagosHoy}
+            conteoPagos={calendarAlerts.conteoPagos}
+            conteoPresupuestos={calendarAlerts.conteoPresupuestos}
+            conteoNotas={calendarAlerts.conteoNotas}
+            conteoEgresos={calendarAlerts.conteoEgresos}
+            conteoTrabajos={calendarAlerts.conteoTrabajos}
+            onNavigateSection={(sec) => {
+              setOpenNewJobModal(false);
+              setCurrentSection(sec);
+            }}
+            currentSection={currentSection}
+          />
           {currentSection === 'dashboard' && (
             <DashboardView
               data={appData}

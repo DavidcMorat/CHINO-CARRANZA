@@ -1,6 +1,6 @@
 {
   "name": "EL CHINO CARRANZA - Sistema de Administración",
-  "description": "Sistema de gestión integral para taller automotriz con seguimiento de trabajos, inventario, clientes, trabajadores, egresos, presupuestos, calendario con notificaciones push FCM y exportación a Excel.",
+  "description": "Sistema de gestión integral para taller automotriz con seguimiento de trabajos, inventario, clientes, trabajadores, egresos, presupuestos, calendario con alertas en la barra superior y exportación a Excel.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
