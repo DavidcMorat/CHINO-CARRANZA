@@ -31,16 +31,26 @@ export const ExportarView: React.FC<ExportarViewProps> = ({ data, onToast }) => 
     return parsed.month === selMonth && parsed.year === selYear;
   });
 
-  const ingresos = trabajosMes.reduce((acc, t) => acc + (Number(t.costo) || 0), 0);
+  const ingresosTrabajos = trabajosMes.reduce((acc, t) => acc + (Number(t.costo) || 0), 0);
 
   // Filter egresos for month
   const egresosMes = data.egresos.filter((e) => {
+    if (e.tipo === 'ingreso') return false;
+    const parsed = parseDateString(e.fecha);
+    if (!parsed) return false;
+    return parsed.month === selMonth && parsed.year === selYear;
+  });
+  
+  const ingresosExtraMes = data.egresos.filter((e) => {
+    if (e.tipo !== 'ingreso') return false;
     const parsed = parseDateString(e.fecha);
     if (!parsed) return false;
     return parsed.month === selMonth && parsed.year === selYear;
   });
 
   const egresos = egresosMes.reduce((acc, e) => acc + (Number(e.monto) || 0), 0);
+  const ingresosExtra = ingresosExtraMes.reduce((acc, e) => acc + (Number(e.monto) || 0), 0);
+  const ingresos = ingresosTrabajos + ingresosExtra;
 
   // Workers payroll
   const getAnticiposTrabajador = (tid: string) => {
@@ -122,18 +132,25 @@ export const ExportarView: React.FC<ExportarViewProps> = ({ data, onToast }) => 
 
       // Sheet 2: Egresos
       const egresosData: (string | number)[][] = [
-        ['ID', 'Descripción', 'Monto (S/)', 'Método Pago', 'Fecha']
+        ['ID', 'Descripción', 'Tipo', 'Monto (S/)', 'Método Pago', 'Fecha']
       ];
-      egresosMes.forEach((e) => {
+      // Include both egresos and ingresosExtra in the export but labeled properly
+      const allMovimientosMes = data.egresos.filter((e) => {
+        const parsed = parseDateString(e.fecha);
+        return parsed && parsed.month === selMonth && parsed.year === selYear;
+      });
+
+      allMovimientosMes.forEach((e) => {
         egresosData.push([
           e.id.slice(-6),
           e.descripcion,
+          e.tipo === 'ingreso' ? 'Ingreso' : 'Egreso',
           Number(e.monto) || 0,
           e.metodoPago,
           e.fecha
         ]);
       });
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(egresosData), 'Egresos');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(egresosData), 'Movimientos');
 
       // Sheet 3: Resumen Financiero
       const resumenData: (string | number)[][] = [
@@ -178,18 +195,19 @@ export const ExportarView: React.FC<ExportarViewProps> = ({ data, onToast }) => 
 
       // All Expenses
       const expData: (string | number)[][] = [
-        ['ID', 'Descripción', 'Monto (S/)', 'Método Pago', 'Fecha']
+        ['ID', 'Descripción', 'Tipo', 'Monto (S/)', 'Método Pago', 'Fecha']
       ];
       data.egresos.forEach((e) => {
         expData.push([
           e.id.slice(-6),
           e.descripcion,
+          e.tipo === 'ingreso' ? 'Ingreso' : 'Egreso',
           Number(e.monto) || 0,
           e.metodoPago,
           e.fecha
         ]);
       });
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(expData), 'Todos los Egresos');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(expData), 'Todos los Movimientos');
 
       // All Workers & Payroll
       const workData: (string | number)[][] = [

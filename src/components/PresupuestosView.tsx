@@ -60,11 +60,21 @@ export const PresupuestosView: React.FC<PresupuestosViewProps> = ({
     if (!parsed) return false;
     return parsed.month === currentMonth && parsed.year === currentYear;
   });
-  const ingresosMes = trabajosMes.reduce((acc, t) => acc + (Number(t.costo) || 0), 0);
+  const ingresosTrabajosMes = trabajosMes.reduce((acc, t) => acc + (Number(t.costo) || 0), 0);
+  const ingresosAdicionalesMes = data.egresos
+    .filter((e) => {
+      if (e.tipo !== 'ingreso') return false;
+      const parsed = parseDateString(e.fecha);
+      if (!parsed) return false;
+      return parsed.month === currentMonth && parsed.year === currentYear;
+    })
+    .reduce((acc, e) => acc + (Number(e.monto) || 0), 0);
+  const ingresosMes = ingresosTrabajosMes + ingresosAdicionalesMes;
 
   // 2. Egresos de este mes
   const egresosMes = data.egresos
     .filter((e) => {
+      if (e.tipo === 'ingreso') return false;
       const parsed = parseDateString(e.fecha);
       if (!parsed) return false;
       return parsed.month === currentMonth && parsed.year === currentYear;
@@ -112,8 +122,10 @@ export const PresupuestosView: React.FC<PresupuestosViewProps> = ({
   const gananciaNetaMes = ingresosMes - egresosMes - pagosPersonalTotalMes;
 
   // 4. Ganancia Neta Acumulada (Todo el Tiempo)
-  const ingresosAllTime = data.trabajos.reduce((acc, t) => acc + (Number(t.costo) || 0), 0);
-  const egresosAllTime = data.egresos.reduce((acc, e) => acc + (Number(e.monto) || 0), 0);
+  const ingresosTrabajosAllTime = data.trabajos.reduce((acc, t) => acc + (Number(t.costo) || 0), 0);
+  const ingresosExtraAllTime = data.egresos.filter(e => e.tipo === 'ingreso').reduce((acc, e) => acc + (Number(e.monto) || 0), 0);
+  const ingresosAllTime = ingresosTrabajosAllTime + ingresosExtraAllTime;
+  const egresosAllTime = data.egresos.filter(e => e.tipo !== 'ingreso').reduce((acc, e) => acc + (Number(e.monto) || 0), 0);
   const sueldosMensualesTotal = data.trabajadores.reduce((sum, w) => sum + (Number(w.sueldo) || 0), 0);
   const anticiposAllTime = data.anticipos.reduce((sum, a) => sum + (Number(a.monto) || 0), 0);
   const pagosPersonalAllTime = Math.max(0, sueldosMensualesTotal + anticiposAllTime);

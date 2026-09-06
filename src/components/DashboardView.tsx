@@ -30,11 +30,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ data, onNavigateSe
     return parsed.month === currentMonth && parsed.year === currentYear;
   });
 
-  const ingresosMes = trabajosMes.reduce((acc, t) => acc + (Number(t.costo) || 0), 0);
+  const ingresosTrabajos = trabajosMes.reduce((acc, t) => acc + (Number(t.costo) || 0), 0);
+  const ingresosAdicionales = (data.egresos || [])
+    .filter((e) => {
+      if (e.tipo !== 'ingreso') return false;
+      const parsed = parseDateString(e.fecha);
+      if (!parsed) return false;
+      return parsed.month === currentMonth && parsed.year === currentYear;
+    })
+    .reduce((acc, e) => acc + (Number(e.monto) || 0), 0);
+
+  const ingresosMes = ingresosTrabajos + ingresosAdicionales;
 
   // Egresos del mes
-  const egresosMes = data.egresos
+  const egresosMes = (data.egresos || [])
     .filter((e) => {
+      if (e.tipo === 'ingreso') return false;
       const parsed = parseDateString(e.fecha);
       if (!parsed) return false;
       return parsed.month === currentMonth && parsed.year === currentYear;
