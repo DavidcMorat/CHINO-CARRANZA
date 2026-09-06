@@ -1,12 +1,29 @@
 const fs = require('fs');
 const path = require('path');
-const sharp = require('sharp');
+
+let sharp;
+try {
+  sharp = require('sharp');
+} catch (e) {
+  console.warn('Notice: sharp is not available. Checking for pre-generated icons...');
+}
 
 const rootDir = path.join(__dirname, '..');
 const publicDir = path.join(rootDir, 'public');
 
 if (!fs.existsSync(publicDir)) {
   fs.mkdirSync(publicDir, { recursive: true });
+}
+
+// If sharp is missing but icons already exist in public/, succeed without failing CI
+if (!sharp) {
+  if (fs.existsSync(path.join(publicDir, 'pwa-512x512.png'))) {
+    console.log('✓ Using pre-generated icons in public folder. Skipping generation.');
+    process.exit(0);
+  } else {
+    console.error('Error: sharp is required to generate icons for the first time.');
+    process.exit(1);
+  }
 }
 
 // Find source icon (newIcon.png as requested by the user for PWA desktop icon)
