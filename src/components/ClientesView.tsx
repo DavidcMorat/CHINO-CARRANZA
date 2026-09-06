@@ -33,14 +33,12 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
   const [vehiculo, setVehiculo] = useState('');
-  const [placa, setPlaca] = useState('');
 
   const handleOpenNew = () => {
     setEditingClient(null);
     setNombre('');
     setTelefono('');
     setVehiculo('');
-    setPlaca('');
     setIsModalOpen(true);
   };
 
@@ -49,7 +47,6 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
     setNombre(c.nombre);
     setTelefono(c.telefono || '');
     setVehiculo(c.vehiculo || '');
-    setPlaca(c.placa || '');
     setIsModalOpen(true);
   };
 
@@ -63,8 +60,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
       id: editingClient ? editingClient.id : generateId(),
       nombre: nombre.trim(),
       telefono: telefono.trim(),
-      vehiculo: vehiculo.trim(),
-      placa: placa.trim().toUpperCase()
+      vehiculo: vehiculo.trim()
     };
 
     let updatedList = [...data.clientes];
@@ -104,7 +100,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
             <span>Directorio de Clientes</span>
           </h1>
           <p className="text-xs text-neutral-400 mt-1">
-            Histórico de clientes, datos de vehículos, placas y creación rápida de trabajos
+            Histórico de clientes, datos de contacto y creación rápida de trabajos
           </p>
         </div>
 
@@ -126,14 +122,13 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
                 <th className="px-4 py-3">Nombre del Cliente</th>
                 <th className="px-4 py-3">Teléfono</th>
                 <th className="px-4 py-3">Vehículo Habitual</th>
-                <th className="px-4 py-3">Placa</th>
                 <th className="px-4 py-3 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-800/60 bg-neutral-900">
               {data.clientes.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-neutral-500">
+                  <td colSpan={4} className="px-4 py-8 text-center text-neutral-500">
                     No hay clientes registrados en la base de datos.
                   </td>
                 </tr>
@@ -143,9 +138,6 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
                     <td className="px-4 py-3 font-semibold text-white">{c.nombre}</td>
                     <td className="px-4 py-3 text-neutral-400">{c.telefono || '-'}</td>
                     <td className="px-4 py-3 text-neutral-300">{c.vehiculo || '-'}</td>
-                    <td className="px-4 py-3 font-mono font-bold text-blue-400 uppercase">
-                      {c.placa || '-'}
-                    </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
@@ -223,8 +215,8 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
                   type="text"
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
-                  placeholder="Ej. Roberto Gomez"
-                  className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-600 focus:outline-none focus:border-blue-500"
+                  placeholder=""
+                  className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs focus:outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -237,39 +229,23 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
                   type="text"
                   value={telefono}
                   onChange={(e) => setTelefono(e.target.value)}
-                  placeholder="Ej. 912345678"
-                  className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-600 focus:outline-none focus:border-blue-500"
+                  placeholder=""
+                  className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs focus:outline-none focus:border-blue-500"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-neutral-400 mb-1.5 flex items-center gap-1.5">
-                    <Car className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Vehículo</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={vehiculo}
-                    onChange={(e) => setVehiculo(e.target.value)}
-                    placeholder="Ej. Nissan Sentra"
-                    className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-600 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-neutral-400 mb-1.5 flex items-center gap-1.5">
-                    <CreditCard className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Placa</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={placa}
-                    onChange={(e) => setPlaca(e.target.value)}
-                    placeholder="ABC-123"
-                    className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs uppercase placeholder-neutral-600 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-neutral-400 mb-1.5 flex items-center gap-1.5">
+                  <Car className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Vehículo</span>
+                </label>
+                <input
+                  type="text"
+                  value={vehiculo}
+                  onChange={(e) => setVehiculo(e.target.value)}
+                  placeholder=""
+                  className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs focus:outline-none focus:border-blue-500"
+                />
               </div>
             </div>
 

@@ -41,7 +41,7 @@ export interface Cliente {
   nombre: string;
   telefono: string;
   vehiculo: string;
-  placa: string;
+  placa?: string;
 }
 
 export interface Presupuesto {
@@ -60,7 +60,11 @@ export interface Egreso {
   monto: number;
   metodoPago: 'efectivo' | 'yape' | 'otro';
   fecha: string; // YYYY-MM-DD
+  tipo?: 'egreso' | 'ingreso'; // 'egreso' (gasto) o 'ingreso' (ingreso adicional externo)
+  categoria?: string;
 }
+
+export type MovimientoFinanciero = Egreso;
 
 export interface Asistencia {
   id: string;
@@ -89,6 +93,25 @@ export interface NotaImportante {
   monto?: number;
   completada: boolean;
   hora?: string; // HH:MM opcional
+  creadaEn?: string;
+}
+
+export interface AutoNotificationConfig {
+  enabled: boolean;
+  notificarPagos: boolean; // Sueldos y anticipos de trabajadores
+  notificarPresupuestos: boolean; // Presupuestos pendientes por vencer
+  notificarNotas: boolean; // Notas importantes del día
+  notificarEgresos: boolean; // Gastos programados
+  notificarTrabajos: boolean; // Trabajos agendados para hoy
+  anticiparUnDia: boolean; // Avisar 1 día antes sobre pagos de sueldos
+}
+
+export interface NotificationLogItem {
+  id: string;
+  timestamp: string;
+  title: string;
+  body: string;
+  tipo: 'pagos' | 'notas' | 'presupuestos' | 'egresos' | 'general';
 }
 
 export interface AppData {
@@ -101,4 +124,5 @@ export interface AppData {
   asistencias: Asistencia[];
   anticipos: Anticipo[];
   notasImportantes?: NotaImportante[];
+  configuracionNotificaciones?: AutoNotificationConfig;
 }

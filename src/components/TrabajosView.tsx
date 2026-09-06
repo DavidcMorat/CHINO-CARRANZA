@@ -333,7 +333,7 @@ export const TrabajosView: React.FC<TrabajosViewProps> = ({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por cliente, vehiculo, desc..."
+              placeholder=""
               className="w-full pl-9 pr-4 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-500 focus:outline-none focus:border-red-500"
             />
           </div>
@@ -568,8 +568,8 @@ export const TrabajosView: React.FC<TrabajosViewProps> = ({
                       type="text"
                       value={clienteNombreManual}
                       onChange={(e) => setClienteNombreManual(e.target.value)}
-                      placeholder="Ej. Juan Pérez (Cliente ocasional)"
-                      className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-600 focus:outline-none focus:border-red-500"
+                      placeholder=""
+                      className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs focus:outline-none focus:border-red-500"
                     />
                   </div>
                 )}
@@ -584,8 +584,8 @@ export const TrabajosView: React.FC<TrabajosViewProps> = ({
                   type="text"
                   value={vehiculo}
                   onChange={(e) => setVehiculo(e.target.value)}
-                  placeholder="Ej. Toyota Yaris 2020 - ABC-123"
-                  className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-600 focus:outline-none focus:border-red-500"
+                  placeholder=""
+                  className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs focus:outline-none focus:border-red-500"
                 />
               </div>
 
@@ -597,8 +597,8 @@ export const TrabajosView: React.FC<TrabajosViewProps> = ({
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value)}
                   rows={3}
-                  placeholder="Ej. Cambio de aceite, revisión de frenos y afinamiento electrónico"
-                  className="w-full p-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-600 focus:outline-none focus:border-red-500"
+                  placeholder=""
+                  className="w-full p-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs focus:outline-none focus:border-red-500"
                 />
               </div>
 
@@ -643,8 +643,8 @@ export const TrabajosView: React.FC<TrabajosViewProps> = ({
                     step="0.01"
                     value={costo}
                     onChange={(e) => setCosto(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-600 focus:outline-none focus:border-red-500"
+                    placeholder=""
+                    className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs focus:outline-none focus:border-red-500"
                   />
                 </div>
 

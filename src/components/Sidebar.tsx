@@ -6,8 +6,7 @@ import {
   Package,
   UserCheck,
   FileSpreadsheet,
-  TrendingDown,
-  CalendarCheck,
+  Wallet,
   Calendar,
   Download,
   LogOut,
@@ -63,8 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'materiales', label: 'Registro de Materiales', icon: <Package className="w-4 h-4" /> },
     { id: 'clientes', label: 'Clientes', icon: <UserCheck className="w-4 h-4" /> },
     { id: 'presupuestos', label: 'Presupuestos', icon: <FileSpreadsheet className="w-4 h-4" /> },
-    { id: 'egresos', label: 'Egresos', icon: <TrendingDown className="w-4 h-4" /> },
-    { id: 'asistencia', label: 'Asistencia', icon: <CalendarCheck className="w-4 h-4" /> },
+    { id: 'egresos', label: 'Ingresos y Egresos', icon: <Wallet className="w-4 h-4" /> },
     { id: 'calendario', label: 'Calendario', icon: <Calendar className="w-4 h-4" /> },
     { id: 'exportar', label: 'Exportar Excel', icon: <Download className="w-4 h-4" /> }
   ];

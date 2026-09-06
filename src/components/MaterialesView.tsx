@@ -244,8 +244,8 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
                   type="text"
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
-                  placeholder="Ej. Aceite Sintético 5W-30 (Galón)"
-                  className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-600 focus:outline-none focus:border-emerald-500"
+                  placeholder=""
+                  className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
@@ -258,8 +258,8 @@ export const MaterialesView: React.FC<MaterialesViewProps> = ({
                   type="number"
                   value={stock}
                   onChange={(e) => setStock(e.target.value)}
-                  placeholder="10"
-                  className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-600 focus:outline-none focus:border-emerald-500"
+                  placeholder=""
+                  className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>

@@ -535,8 +535,8 @@ export const PresupuestosView: React.FC<PresupuestosViewProps> = ({
                   type="text"
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value)}
-                  placeholder="Ej. Compra de elevador hidráulico o Pago a proveedor"
-                  className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-600 focus:outline-none focus:border-indigo-500"
+                  placeholder=""
+                  className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
@@ -569,8 +569,8 @@ export const PresupuestosView: React.FC<PresupuestosViewProps> = ({
                     step="0.01"
                     value={monto}
                     onChange={(e) => setMonto(e.target.value)}
-                    placeholder="1500.00"
-                    className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-600 focus:outline-none focus:border-indigo-500"
+                    placeholder=""
+                    className="w-full py-2.5 px-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500"
                   />
                 </div>
 
