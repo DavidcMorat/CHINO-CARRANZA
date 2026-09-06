@@ -59,6 +59,7 @@ export async function saveUserData(user: User, data: AppData): Promise<boolean> 
       asistencias: data.asistencias || [],
       anticipos: data.anticipos || [],
       notasImportantes: data.notasImportantes || [],
+      configuracionNotificaciones: data.configuracionNotificaciones || null,
       lastUpdate: new Date().toISOString()
     };
     await setDoc(docRef, sanitizeForFirestore(rawPayload));
@@ -91,7 +92,8 @@ export async function loadUserData(user: User): Promise<AppData | null> {
         egresos: fd.egresos || [],
         asistencias: fd.asistencias || [],
         anticipos: fd.anticipos || [],
-        notasImportantes: fd.notasImportantes || []
+        notasImportantes: fd.notasImportantes || [],
+        configuracionNotificaciones: fd.configuracionNotificaciones || undefined
       };
     }
   } catch (error) {
@@ -117,7 +119,8 @@ export async function loadUserData(user: User): Promise<AppData | null> {
     egresos: [],
     asistencias: [],
     anticipos: [],
-    notasImportantes: []
+    notasImportantes: [],
+    configuracionNotificaciones: undefined
   };
 }
 
@@ -138,7 +141,8 @@ export function subscribeUserData(user: User, onUpdate: (data: AppData) => void)
           egresos: fd.egresos || [],
           asistencias: fd.asistencias || [],
           anticipos: fd.anticipos || [],
-          notasImportantes: fd.notasImportantes || []
+          notasImportantes: fd.notasImportantes || [],
+          configuracionNotificaciones: fd.configuracionNotificaciones || undefined
         });
       }
     },

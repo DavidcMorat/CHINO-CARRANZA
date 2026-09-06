@@ -24,6 +24,7 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import { CheckCircle2, AlertCircle, BellRing, Calendar as CalendarIcon, ChevronRight } from 'lucide-react';
 import { setupFCMForegroundListener } from './lib/firebaseMessaging';
 import { checkAndSendAutomaticNotifications, getCalendarAlerts } from './lib/calendarNotificationEngine';
+import { subscribeUserToWebPush } from './lib/pushSubscription';
 import { formatCurrency } from './lib/dateUtils';
 
 interface ToastItem {
@@ -103,6 +104,16 @@ export default function App() {
 
     return () => unsubscribeAuth();
   }, []);
+
+  // Registrar suscripción de Web Push en segundo plano si el usuario ya concedió permiso
+  useEffect(() => {
+    if (!currentUser) return;
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      subscribeUserToWebPush(currentUser.uid).catch((err) => {
+        console.warn('[App] Error al verificar suscripción Web Push en segundo plano:', err);
+      });
+    }
+  }, [currentUser]);
 
   // Foreground FCM Push Notification Listener
   useEffect(() => {

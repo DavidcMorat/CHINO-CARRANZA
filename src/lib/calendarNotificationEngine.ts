@@ -1,6 +1,7 @@
 import { AppData, AutoNotificationConfig, Trabajador, Anticipo, Presupuesto, NotaImportante, Egreso, Trabajo } from '../types';
 import { getTodayStr, getTomorrowStr, parseDateString, formatCurrency } from './dateUtils';
 import { sendLocalNotification } from './firebaseMessaging';
+import { syncAlertsWithServer, saveAlertsToIndexedDB } from './pushSubscription';
 
 export const DEFAULT_NOTIFICATION_CONFIG: AutoNotificationConfig = {
   enabled: true,
@@ -312,6 +313,11 @@ export async function checkAndSendAutomaticNotifications(
 
   const summary = getCalendarAlerts(data, config);
   const { alerts, todayStr } = summary;
+
+  // Siempre sincronizar con el servidor y con IndexedDB para notificaciones en segundo plano
+  syncAlertsWithServer(summary).catch((err) => {
+    console.warn('[CalendarEngine] Sync con servidor en background:', err);
+  });
 
   if (alerts.length === 0) {
     if (options?.force) {

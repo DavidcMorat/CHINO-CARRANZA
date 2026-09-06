@@ -26,7 +26,9 @@ import {
   AlertCircle,
   Info,
   Sliders,
-  ShieldCheck
+  ShieldCheck,
+  Smartphone,
+  Radio
 } from 'lucide-react';
 import { AppData, NotaImportante, AutoNotificationConfig } from '../types';
 import { formatCurrency, generateId, getTodayStr } from '../lib/dateUtils';
@@ -36,6 +38,11 @@ import {
   FCM_VAPID_KEY,
   isFCMSupported
 } from '../lib/firebaseMessaging';
+import {
+  subscribeUserToWebPush,
+  sendTestBackgroundPush,
+  getExistingPushSubscription
+} from '../lib/pushSubscription';
 import {
   getCalendarAlerts,
   checkAndSendAutomaticNotifications,
@@ -80,6 +87,9 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
       return [];
     }
   });
+  const [isTestingBackgroundPush, setIsTestingBackgroundPush] = useState(false);
+  const [bgTestCountdown, setBgTestCountdown] = useState<number | null>(null);
+  const [isWebPushActive, setIsWebPushActive] = useState(false);
 
   // Notification Config & Alerts for Today
   const notifConfig = data.configuracionNotificaciones || DEFAULT_NOTIFICATION_CONFIG;
@@ -100,7 +110,10 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
     if (typeof Notification !== 'undefined') {
       setNotificationPermission(Notification.permission);
     }
-  }, []);
+    getExistingPushSubscription().then((sub) => {
+      setIsWebPushActive(!!sub);
+    });
+  }, [showFCMModal]);
 
   const monthNames = [
     'Enero',
@@ -314,15 +327,26 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
     setSelectedDayStr(dateStr);
   };
 
-  // Activate FCM & Request Browser Permission
+  // Activate FCM & Request Browser Permission & Web Push
   const handleEnableNotifications = async () => {
     setIsActivatingFCM(true);
     try {
       const result = await requestPushNotificationPermission();
-      if (result.success && result.token) {
-        setFcmToken(result.token);
+      if (result.success) {
+        if (result.token) setFcmToken(result.token);
         setNotificationPermission('granted');
-        onToast?.('¡Notificaciones Push activadas con éxito!', 'success');
+
+        // Suscribir también a Web Push estándar para segundo plano / app cerrada
+        try {
+          const webPushRes = await subscribeUserToWebPush();
+          if (webPushRes.success) {
+            setIsWebPushActive(true);
+          }
+        } catch (wpErr) {
+          console.warn('Error registrando Web Push:', wpErr);
+        }
+
+        onToast?.('¡Notificaciones Push activadas para este dispositivo (incluso en 2do plano)!', 'success');
         await sendLocalNotification(
           '🔔 Notificaciones Activadas - EL CHINO',
           'Recibirás alertas de pagos, ingresos, egresos y notas importantes del calendario.'
@@ -338,6 +362,33 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
       onToast?.(msg, 'error');
     } finally {
       setIsActivatingFCM(false);
+    }
+  };
+
+  // Probar notificación Push en segundo plano con retardo de 5 segundos
+  const handleTestBackgroundPush = async () => {
+    setIsTestingBackgroundPush(true);
+    try {
+      const res = await sendTestBackgroundPush(5);
+      if (res.success) {
+        onToast?.(res.message, 'success');
+        setBgTestCountdown(5);
+        const interval = setInterval(() => {
+          setBgTestCountdown((prev) => {
+            if (prev === null || prev <= 1) {
+              clearInterval(interval);
+              return null;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        onToast?.(res.message, 'error');
+      }
+    } catch (e: any) {
+      onToast?.(e?.message || 'Error al programar prueba de segundo plano', 'error');
+    } finally {
+      setIsTestingBackgroundPush(false);
     }
   };
 
@@ -1703,7 +1754,7 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
 
             {/* FCM Actions */}
             <div className="flex flex-wrap gap-2.5">
-              {notificationPermission !== 'granted' && (
+              {notificationPermission !== 'granted' ? (
                 <button
                   onClick={handleEnableNotifications}
                   disabled={isActivatingFCM}
@@ -1716,6 +1767,16 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
                   )}
                   <span>Activar Notificaciones Push Ahora</span>
                 </button>
+              ) : (
+                <button
+                  onClick={handleEnableNotifications}
+                  disabled={isActivatingFCM}
+                  className="py-2.5 px-4 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-semibold text-xs flex items-center gap-2 border border-neutral-700 transition-colors"
+                  title="Renovar suscripción push en segundo plano"
+                >
+                  <Radio className="w-4 h-4 text-emerald-400" />
+                  <span>Sincronizar Dispositivo</span>
+                </button>
               )}
 
               <button
@@ -1723,8 +1784,51 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
                 className="py-2.5 px-4 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold text-xs flex items-center gap-2 border border-neutral-700 transition-colors"
               >
                 <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>Probar Notificación en este Equipo</span>
+                <span>Probar Notificación en Pantalla</span>
               </button>
+
+              <button
+                onClick={handleTestBackgroundPush}
+                disabled={isTestingBackgroundPush || bgTestCountdown !== null}
+                className="py-2.5 px-4 rounded-xl bg-indigo-950/80 hover:bg-indigo-900/90 text-indigo-200 font-semibold text-xs flex items-center gap-2 border border-indigo-800/80 shadow-md transition-colors"
+              >
+                <Smartphone className="w-4 h-4 text-indigo-400" />
+                <span>
+                  {bgTestCountdown !== null
+                    ? `¡Sal de la app o bloquea el móvil! (${bgTestCountdown}s)`
+                    : 'Probar Fuera de la App (en 5 seg)'}
+                </span>
+              </button>
+            </div>
+
+            {/* Tarjeta Informativa: Notificaciones Fuera de la App */}
+            <div className="p-4 rounded-xl bg-gradient-to-br from-neutral-900 via-neutral-900 to-indigo-950/40 border border-neutral-800 text-xs space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-bold text-white">
+                  <Smartphone className="w-4 h-4 text-indigo-400" />
+                  <span>Notificaciones cuando no estás en la App (Segundo Plano)</span>
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                  isWebPushActive
+                    ? 'bg-emerald-950/60 border-emerald-800 text-emerald-300'
+                    : 'bg-amber-950/60 border-amber-800 text-amber-300'
+                }`}>
+                  {isWebPushActive ? '● Segundo Plano Conectado' : '○ Sincronizando'}
+                </span>
+              </div>
+              <p className="text-[11px] text-neutral-300 leading-relaxed">
+                El sistema cuenta con un motor Web Push en el servidor. Cuando no tienes la app abierta o tu teléfono está bloqueado, el servidor envía la alerta directamente a través de los servicios de Google (FCM) / Apple Push.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px] text-neutral-400">
+                <div className="bg-neutral-950/70 p-2.5 rounded-lg border border-neutral-800/70">
+                  <span className="font-semibold text-neutral-200 block mb-1">📱 En Celulares Android:</span>
+                  <span>Agrega la app a la pantalla principal (menú de Chrome &gt; "Instalar aplicación"). Asegúrate de que el ahorro de batería de tu teléfono no bloquee las notificaciones en segundo plano.</span>
+                </div>
+                <div className="bg-neutral-950/70 p-2.5 rounded-lg border border-neutral-800/70">
+                  <span className="font-semibold text-neutral-200 block mb-1">🍏 En iPhone / iPad:</span>
+                  <span>En Safari, pulsa Compartir &gt; "Agregar a pantalla de inicio". Abre la app desde el icono instalado para que iOS habilite Web Push en segundo plano (requiere iOS 16.4+).</span>
+                </div>
+              </div>
             </div>
 
             {/* Configuración de Envíos Automáticos del Calendario */}
